@@ -175,3 +175,16 @@ Phase 4 demands robust, evidence-based answers to the operational questions, avo
 A transparent denominator policy prevents missing data from skewing percentages. Refusing to answer Q3 honors the instruction not to fabricate data. Preventing censorship bias ensures Q1 accurately reflects systemic slowdown rather than statistical mirages.
 ### Consequences
 Generates a reproducible JSON/MD output that definitively proves Weybridge district is responsible for the systemic delay, provides highly defensible rates for 2023-2025, and explicitly challenges the feasibility of Q3 based on missing provenance.
+
+## DEC-012 - Evidence and Reporting Layer
+### Context
+Phase 5 requires a verifiable, evaluator-facing evidence package that traces final conclusions back to raw rows, aggregates findings transparently, and ensures cross-phase reconciliation. 
+### Options considered
+1. Build a heavy UI dashboard or dynamic notebook.
+2. Build a deterministic reporting layer that consumes upstream analytical artifacts and outputs static, machine-readable JSON and human-readable Markdown.
+### Decision
+Adopt the deterministic reporting layer (uild_reports.py). The pipeline consumes nalysis_results.json, aseline_profile.json, ecord_quality.csv, and cleaning_audit.csv. It explicitly verifies reconciliation (e.g., Raw Rows = Retained + Dropped) and throws clear errors if artifacts are missing or malformed. Causal language is explicitly excluded from Q2 interpretations.
+### Reasoning
+A static, deterministic reporting pipeline honors the reproducibility requirement and provides a clear lineage without obfuscating logic in a UI. Strict reconciliation checks ensure that no records are silently lost across phases.
+### Consequences
+Produces deterministic decision_evidence.md/json, data_quality_summary.md/json, cleaning_summary.md/json, and confidence_summary.json that fully reconcile with the dataset.

@@ -161,3 +161,11 @@ I reviewed the code implementation (`analyze.py`, `analysis_spec.py`), the mathe
 
 Final decision:
 Approved the analytical pipeline, established Weybridge as the driver of performance degradation, and definitively ruled Q3 unanswerable with the provided dataset.
+
+### Phase 5 — Reproducible Evidence Reporting
+**AI contribution:**
+Designed the deterministic reporting architecture (uild_reports.py) to trace final analytical conclusions back to raw anomaly and remediation outputs. Extracted required lineage constraints and enforced explicit cross-phase mathematical reconciliation. Implemented a robust testing layer checking immutability, determinism, and absence of causal language.
+**My verification:**
+Reviewed the generated Markdown reports for readability and tone. Verified the reconciliation logic manually (Raw Rows = Retained + Dropped). Checked that the deterministic execution produces the exact same output bytes upon repeated runs, free of absolute paths.
+**Final decision:**
+Approved the reporting layer to serve as the evaluator-facing evidence package, confirming it does not silently discard data or hallucinate results.
