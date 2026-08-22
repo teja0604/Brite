@@ -1,6 +1,9 @@
 import pandas as pd
 import json
 import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dirty_data.ingest import ingest_raw_data
 

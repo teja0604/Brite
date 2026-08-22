@@ -1,4 +1,8 @@
 import pandas as pd
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from dirty_data.ingest import ingest_raw_data
 from dirty_data.detect import detect_anomalies, generate_anomaly_report
 import os

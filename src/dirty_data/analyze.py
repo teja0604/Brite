@@ -1,6 +1,9 @@
-import json
+import os
 import pandas as pd
+import json
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np
 
 from dirty_data.analysis_spec import QUESTIONS, classify_30_day_outcome

@@ -1,4 +1,9 @@
 import pandas as pd
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import os
 from dirty_data.detect import detect_anomalies
 from dirty_data.remediate import remediate_dataset
