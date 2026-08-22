@@ -205,3 +205,16 @@ Handling failures at the source instead of broadly catching exceptions ensures t
 Adds minor structural complexity to pandas operations (explicit `.empty` checks instead of relying on vectorized safety nets), but guarantees robustness under extreme filtering.
 ### Consequences
 Pipeline now survives zero-record scenarios without crashing or producing misleading NaNs, and testing can safely isolate and verify failure behavior on missing files.
+
+## DEC-014 - Strict Dependency Management
+### Context
+The project imported numpy directly in analyze.py. While numpy is typically installed implicitly alongside pandas, relying on transitive dependencies introduces reproducibility risks across different package manager resolutions.
+### Options considered
+1. Leave requirements.txt relying only on pandas.
+2. Explicitly declare numpy in requirements.txt.
+### Decision
+Explicitly add numpy to requirements.txt.
+### Reasoning
+Reproducibility requires explicit top-level tracking of any package directly imported by the source code, preventing future environmental breakage.
+### Consequences
+The environment is fully deterministic regarding top-level package imports, eliminating implicit dependency assumptions.

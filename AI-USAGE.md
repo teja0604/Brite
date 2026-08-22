@@ -177,3 +177,11 @@ AI assisted in designing adversarial failure categories (schema, missingness, la
 Verified the defects existed by running the adversarial test suite and confirming failures. Validated that the underlying fixes (gracefully checking df.empty and utilizing sys.argv[1] for output targets) correctly resolved the vulnerabilities without breaking the real data pipeline.
 **Final decision:**
 Approved the hardening modifications as they prevent loud failure from missing files and silent failure/crashes from extreme downstream filtering.
+
+### Phase 7 - Final Reproducibility & Submission Gate
+**AI contribution:**
+AI assisted in performing a comprehensive repository and dependency audit. It identified that numpy was directly imported in the source code but only implicitly provided via pandas, introducing a reproducibility risk.
+**My verification:**
+Verified the import traces using grep and confirmed numpy was missing from requirements.txt. Validated the addition of numpy to the requirements file to ensure explicit tracking.
+**Final decision:**
+Approved the strict dependency management approach to guarantee portable environment construction.
