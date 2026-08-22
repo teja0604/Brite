@@ -47,3 +47,38 @@ I reviewed the relevant challenge wording and confirmed that these definitions w
 
 Final decision:
 Documented these ambiguities to be addressed empirically during the Phase 1 exploratory data analysis rather than making premature assumptions.
+
+## Phase 1 — Data Ingestion and Baseline Profiling
+
+### Schema validation design
+
+AI contribution:
+Recommended reading all columns as raw strings during ingestion to prevent pandas from silently coercing dates or dropping leading zeros from IDs.
+
+My verification:
+I reviewed the organizer handbook's warning ("be careful about what you drop silently") and confirmed that preserving the raw text representation is necessary for an honest data quality assessment.
+
+Final decision:
+Implemented the ingestion module to read the CSV as purely strings and built explicit test cases to verify this behavior.
+
+### Profiling dimension selection
+
+AI contribution:
+Suggested separating the profiling of exact identifier duplicates (like `case_id`) from exploratory profiling of categories and dates to establish clear evidence for later resolution.
+
+My verification:
+I reviewed the profiling requirements and confirmed that identifying exact duplicates without merging them aligns with the Phase 1 goal of establishing a baseline without prematurely altering the dataset.
+
+Final decision:
+Designed the `profile.py` module to generate a deterministic JSON profile of raw values without applying any analytical cleaning.
+
+### Reproducibility and Data Provenance Correction
+
+AI contribution:
+Identified that pandas random sampling and automatic NA coercion violated the strict deterministic and immutable raw-evidence constraints. Recommended updating ingestion to explicitly preserve empty strings and literal "NA" values, and replacing random sampling with deterministic selection.
+
+My verification:
+I reviewed the reproducibility requirement and the organizer's instruction that "a parser that skips rows it cannot read... will not tell you it did that." I verified that preserving empty strings explicitly avoids silent data loss.
+
+Final decision:
+Refactored the ingestion and profiling modules to guarantee deterministic outputs and literal raw value preservation.
