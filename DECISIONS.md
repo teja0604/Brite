@@ -159,3 +159,19 @@ Adopt the evidence-driven disposition model:
 A blanket clean drops nuance and destroys provenance. By evaluating eligibility per-record-per-analysis, we can safely compute case counts from records that have invalid dates, instead of entirely removing the record from the pipeline. Furthermore, formatting-only normalization is safe, but semantic normalization without explicit organizer mapping introduces false equivalence.
 ### Consequences
 Generates a cleaned dataset that retains >99% of cases (dropping only 28 true duplicates), accompanied by a meticulous `cleaning_audit.csv` limited strictly to material interventions, and a `record_quality.csv` eligibility matrix for downstream analysis.
+
+## DEC-011 — Phase 4 Analytical Framework & Denominator Discipline
+### Context
+Phase 4 demands robust, evidence-based answers to the operational questions, avoiding fabricated denominators, censorship biases, or unwarranted causal claims.
+### Options considered
+1. Naively computing average closure times and producing theoretical estimates.
+2. Building an explicit eligibility rule engine for each question and transparently defining numerators and denominators.
+### Decision
+- **Unit of Analysis**: For closure duration, the unit is the unique case (`source_row` surviving exact deduplication).
+- **Censorship Bias Prevention**: Direct comparison of average case durations heavily distorts recent performance (2025 cases haven't had time to become 300+ day cases). We define performance using the **30-day closure rate** alongside **Median Duration**, tracking cases that resolve quickly rather than averaging unbounded open cases.
+- **Eligibility enforcement**: Any case flagged with `eligible_for_duration_analysis=False` (due to ambiguous formats, invalid calendars) or containing surviving temporal contradictions (`closure_date` < `intake_date`) is strictly excluded from the closure time denominator.
+- **Unanswerable Questions**: Q3 asks about triage impacts on high-priority cases. We reject answering this mathematically because the `priority` field is 100% missing in 2023. We establish that we lack a pre-triage baseline.
+### Reasoning
+A transparent denominator policy prevents missing data from skewing percentages. Refusing to answer Q3 honors the instruction not to fabricate data. Preventing censorship bias ensures Q1 accurately reflects systemic slowdown rather than statistical mirages.
+### Consequences
+Generates a reproducible JSON/MD output that definitively proves Weybridge district is responsible for the systemic delay, provides highly defensible rates for 2023-2025, and explicitly challenges the feasibility of Q3 based on missing provenance.

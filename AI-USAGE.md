@@ -150,3 +150,14 @@ Reviewed the implementation and checked the remediation behavior against the Pha
 
 Final decision:
 Restricted automatic category normalization to formatting-only cases and separated action-level audit metrics from record-level disposition metrics.
+
+### Phase 4 Decision Analysis & Metric Definitions
+
+AI contribution:
+AI assisted in defining rigorous numerators, denominators, and eligibility logic for the organizer questions. It identified censorship bias in directly comparing average case durations and recommended the 30-day closure rate and median duration as unbiased indicators. It also correctly identified that Question 3 was unanswerable because the `priority` field was 100% missing in 2023, thus preventing the establishment of a pre-triage baseline.
+
+My verification:
+I reviewed the code implementation (`analyze.py`, `analysis_spec.py`), the mathematical formulations in the JSON/MD output, and executed tests verifying that the 126 temporal contradictions skipped during parsing were securely excluded during analysis. I validated that the data limitations identified for Q3 matched the actual missingness in the CSV.
+
+Final decision:
+Approved the analytical pipeline, established Weybridge as the driver of performance degradation, and definitively ruled Q3 unanswerable with the provided dataset.
