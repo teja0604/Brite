@@ -218,3 +218,17 @@ Explicitly add numpy to requirements.txt.
 Reproducibility requires explicit top-level tracking of any package directly imported by the source code, preventing future environmental breakage.
 ### Consequences
 The environment is fully deterministic regarding top-level package imports, eliminating implicit dependency assumptions.
+
+## DEC-014 - Portable Execution Architecture
+### Context
+Evaluators must be able to run the pipeline sequentially from a clean clone using standard Python execution (e.g. `python src/dirty_data/profile.py`) without having to manually set the PYTHONPATH environment variable or install the project as a package.
+### Options considered
+1. Force the evaluator to set PYTHONPATH.
+2. Create a setup.py / pyproject.toml to install the package.
+3. Inject sys.path resolution into the entrypoint scripts.
+### Decision
+Adopt sys.path injection (`sys.path.insert(0, str(Path(__file__).resolve().parent.parent))`) into the entrypoint scripts.
+### Reasoning
+This is the minimal, least-intrusive fix. It avoids forcing the evaluator to configure environment variables and eliminates packaging complexity that isn't required for a simple data analysis pipeline.
+### Consequences
+The pipeline runs completely isolated out-of-the-box on any OS without ModuleNotFoundError for internal dirty_data imports.
