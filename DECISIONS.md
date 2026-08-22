@@ -91,3 +91,52 @@ A string "NA" might mean something different than an empty field in a badly main
 Empty string checks (`== ""`) must be explicitly written instead of generic `.isna()` checks.
 ### Consequences
 The profiling logic now computes missing counts explicitly from `""`, keeping the ingestion layer purely representational.
+
+## DEC-007 — Data Quality Contract and Anomaly Taxonomy
+### Context
+Phase 2 requires identifying dirty data without overwriting the raw baseline.
+### Options considered
+1. Detect anomalies and clean them in a single pass.
+2. Separate detection (observation) from remediation (cleaning) via a formalized anomaly taxonomy.
+### Decision
+Adopt a strict separation between anomaly detection and data cleaning. Detected issues are tagged using an explicit `AnomalyType` taxonomy (`MISSING_VALUE`, `INVALID_DOMAIN`, `FORMAT_VIOLATION`, `LOGICAL_CONTRADICTION`, `IDENTITY_VARIANT`, `UNCONTROLLED_VOCABULARY`) and saved to an evidence register. No data is modified.
+### Reasoning
+A clear boundary prevents silent data loss and enables fully auditable remediation in future phases. Evaluators and stakeholders must be able to trace exactly why a record was classified as an anomaly based on explicit rules rather than opaque cleaning scripts.
+### Trade-offs
+Requires an intermediate storage/reporting layer for anomalies before the final cleaned dataset is produced.
+### Consequences
+The system produces a deterministic, verifiable log of anomalies (`outputs/phase2_anomaly_report.csv`) that serves as the factual basis for Phase 3 cleaning decisions.
+
+## DEC-008 — Refining the Data Quality Contract
+### Context
+The initial Phase 2 rules were too aggressive, assuming frequency equated to canonical truth and that similar strings proved identity. The dataset's true nature required more conservative definitions.
+### Options considered
+1. Automatically merge similar identities and default to the top 5 categories as the only valid vocabulary.
+2. Separate observation from assertion by distinguishing exact duplicates from candidate variants, and differentiating valid alternative date formats from invalid dates.
+### Decision
+Adopt conservative anomaly definitions:
+- **Identity**: Distinguish `EXACT_DUPLICATE` from `CANDIDATE_IDENTITY_VARIANT` (matching via normalized signature). Phase 2 does not merge identities.
+- **Vocabulary**: Distinguish `UNCONTROLLED_VOCABULARY` from `CANDIDATE_CATEGORY_VARIANT`. Rare categories are not marked as invalid merely because they are rare.
+- **Dates**: Distinguish `DATE_FORMAT_VARIATION` (valid but non-canonical) from `INVALID_DATE` (unparseable). Ambiguous dates are not silently parsed. Temporal contradictions are only emitted if both dates are unambiguously canonical.
+- **Traceability**: Every anomaly must include a `source_row` index back to the exact line in the raw CSV.
+### Reasoning
+Detecting a similar string is an observation; merging them is a decision. The anomaly register must provide evidence, not prematurely alter the dataset. Ambiguous dates (e.g. `03/04/2024`) cannot safely trigger logic rules until they are definitively interpreted.
+### Consequences
+The detector produces a richer, safer set of candidate variants without destroying the nuanced distinction between exact matches and probable matches. False positives are heavily reduced.
+
+## DEC-009 — Deterministic Explicit Date Parsing
+### Context
+The previous classification of `DATE_FORMAT_VARIATION` fell back on `pandas.to_datetime` (flexible inference). This allowed undocumented inference rules (e.g. implicitly assuming a locale like month-first) to silently interpret ambiguous dates, producing a pandas warning during tests.
+### Options considered
+1. Suppress the warning and accept the parser's guess.
+2. Replace flexible inference with explicit, deterministic rules that match the actual formats found in the dataset.
+### Decision
+Removed unrestricted `pd.to_datetime` inference. Date classification is now strictly deterministic:
+- `CANONICAL`: matched by `YYYY-MM-DD` and validated by `datetime.strptime`.
+- `DATE_FORMAT_VARIATION`: exactly matched to textual `Month DD, YYYY`, or matched as an unambiguous numeric format where one component explicitly exceeds 12.
+- `AMBIGUOUS_DATE_FORMAT`: numeric dates where both day/month parts are `<= 12` are marked ambiguous.
+- `INVALID_DATE`: fails physical calendar validation or format parsing.
+### Reasoning
+A data-quality pipeline cannot confidently assert anomaly classifications based on silent inference rules. By explicitly enumerating the formats present in the dataset and deterministically checking ambiguity, we prevent false certainty.
+### Consequences
+Testing produces no pandas warnings. Unambiguous numeric and explicit text formats are accurately mapped without locale guesswork.

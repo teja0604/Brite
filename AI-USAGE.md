@@ -82,3 +82,49 @@ I reviewed the reproducibility requirement and the organizer's instruction that 
 
 Final decision:
 Refactored the ingestion and profiling modules to guarantee deterministic outputs and literal raw value preservation.
+
+## Phase 2 — Data Quality Contract & Anomaly Taxonomy
+
+### Detection and Cleaning Separation
+
+AI contribution:
+Proposed a formal taxonomy (e.g., `LOGICAL_CONTRADICTION`, `UNCONTROLLED_VOCABULARY`) to classify errors without modifying the underlying raw dataset, ensuring the "observe and detect" phase is cleanly separated from the "propose and clean" phase.
+
+My verification:
+I reviewed the requirement to "NOT clean or overwrite raw data in this phase" and confirmed that the generated evidence-backed register fulfills the auditability mandate by logging exact anomalies and severity levels without prematurely altering values.
+
+Final decision:
+Implemented the `Anomaly` dataclass and detector engine to output a deterministic anomaly register based on strict data quality contract rules.
+
+### Phase 2 Contract Refinement
+
+AI contribution:
+AI review identified that the top-five category heuristic and aggressive identifier normalization could create false positives. Proposed refining the taxonomy to distinguish exact duplicates from candidate identity variants, and valid alternative date formats from invalid dates.
+
+My verification:
+I checked the implementation against the organizer's actual wording and the generated evidence. I verified that rare categories are no longer prematurely penalized, ambiguous dates are not silently parsed, and every anomaly now includes a strict `source_row` back to the raw CSV.
+
+Final decision:
+Amended the Phase 2 commit to enforce conservative, evidence-only detection, removing all automatic data-merging heuristics.
+
+### Phase 2 Ambiguous Date Parsing Correction
+
+AI contribution:
+AI review recognized that a flexible date parser could silently misinterpret ambiguous numeric dates (e.g., `03/04/2024` as April 3 or March 4). Implemented a deterministic format check to catch dates where both numeric components are `<= 12` and explicitly label them as `AMBIGUOUS_DATE_FORMAT` without guessing their semantics.
+
+My verification:
+I reviewed the test output and the new anomaly register. I verified that ambiguous strings are safely tagged rather than being silently converted to incorrect dates, guaranteeing that temporal contradiction checks are restricted solely to unambiguous timestamps.
+
+Final decision:
+Refined the date detection logic to add `AMBIGUOUS_DATE_FORMAT` to the taxonomy and isolated it from temporal logic checks.
+
+### Phase 2 Deterministic Date Parsing
+
+AI contribution:
+AI review recognized that relying on pandas flexible inference for `DATE_FORMAT_VARIATION` parsing introduced undocumented locale assumptions and warnings. Proposed replacing it with explicit `datetime.strptime` calls tailored only to the formats actually present in the CSV.
+
+My verification:
+I reviewed the dataset formats and the updated `contract.py` parser, ensuring that the explicit checks strictly enforce calendar rules without silently guessing when numeric dates could be ambiguous. The test suite warning is resolved.
+
+Final decision:
+Refactored date parsing to use deterministic rules exclusively, removing `pandas.to_datetime` inference from the contract layer.
