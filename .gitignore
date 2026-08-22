@@ -1,0 +1,18 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.env
+
+# OS metadata
+.DS_Store
+._*
+__MACOSX/
+Thumbs.db
+
+# Project-specific
+outputs/*
+!outputs/.gitkeep
