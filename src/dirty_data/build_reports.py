@@ -195,7 +195,10 @@ def generate_confidence_summary(outputs_dir):
         json.dump(confidence, f, indent=2)
 
 def main():
-    outputs_dir = Path(os.path.join(os.path.dirname(__file__), "..", "..", "outputs")).resolve()
+    if len(sys.argv) > 1:
+        outputs_dir = Path(sys.argv[1]).resolve()
+    else:
+        outputs_dir = Path(os.path.join(os.path.dirname(__file__), "..", "..", "outputs")).resolve()
     
     # 1. Verify existence of required upstream artifacts
     analysis_results = load_json(outputs_dir / "analysis_results.json")

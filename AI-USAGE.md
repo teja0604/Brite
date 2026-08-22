@@ -169,3 +169,11 @@ Designed the deterministic reporting architecture (uild_reports.py) to trace fi
 Reviewed the generated Markdown reports for readability and tone. Verified the reconciliation logic manually (Raw Rows = Retained + Dropped). Checked that the deterministic execution produces the exact same output bytes upon repeated runs, free of absolute paths.
 **Final decision:**
 Approved the reporting layer to serve as the evaluator-facing evidence package, confirming it does not silently discard data or hallucinate results.
+
+### Phase 6 - Adversarial Validation & System Hardening
+**AI contribution:**
+AI assisted in designing adversarial failure categories (schema, missingness, large-input, missing upstream files) and implementing isolated test suites using Pytest temporary directories. It identified unsafe behavior in nalyze.py (empty DataFrame apply crash) and uild_reports.py (hardcoded artifact path swallowing test failures).
+**My verification:**
+Verified the defects existed by running the adversarial test suite and confirming failures. Validated that the underlying fixes (gracefully checking df.empty and utilizing sys.argv[1] for output targets) correctly resolved the vulnerabilities without breaking the real data pipeline.
+**Final decision:**
+Approved the hardening modifications as they prevent loud failure from missing files and silent failure/crashes from extreme downstream filtering.

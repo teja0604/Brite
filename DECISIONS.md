@@ -183,8 +183,25 @@ Phase 5 requires a verifiable, evaluator-facing evidence package that traces fin
 1. Build a heavy UI dashboard or dynamic notebook.
 2. Build a deterministic reporting layer that consumes upstream analytical artifacts and outputs static, machine-readable JSON and human-readable Markdown.
 ### Decision
-Adopt the deterministic reporting layer (uild_reports.py). The pipeline consumes nalysis_results.json, aseline_profile.json, ecord_quality.csv, and cleaning_audit.csv. It explicitly verifies reconciliation (e.g., Raw Rows = Retained + Dropped) and throws clear errors if artifacts are missing or malformed. Causal language is explicitly excluded from Q2 interpretations.
+Adopt the deterministic reporting layer ( uild_reports.py). The pipeline consumes  nalysis_results.json,  aseline_profile.json, ecord_quality.csv, and cleaning_audit.csv. It explicitly verifies reconciliation (e.g., Raw Rows = Retained + Dropped) and throws clear errors if artifacts are missing or malformed. Causal language is explicitly excluded from Q2 interpretations.
 ### Reasoning
 A static, deterministic reporting pipeline honors the reproducibility requirement and provides a clear lineage without obfuscating logic in a UI. Strict reconciliation checks ensure that no records are silently lost across phases.
 ### Consequences
 Produces deterministic decision_evidence.md/json, data_quality_summary.md/json, cleaning_summary.md/json, and confidence_summary.json that fully reconcile with the dataset.
+
+## DEC-013 - Adversarial Hardening & Safe Execution
+### Context
+Adversarial validation (Phase 6) revealed that edge cases (like zero eligible records resulting in empty DataFrames) caused Pandas `apply()` to return an empty Series, breaking downstream filtering. Furthermore, the reporting layer hardcoded its artifact source directory, meaning tests could inadvertently read the real artifacts and swallow failures when testing missing upstream files.
+### Problem discovered
+Zero-row dataframes crashed `analyze.py`, and `build_reports.py` masked missing inputs by hardcoding the output directory.
+### Options considered
+1. Catch the KeyError or ValueError at the top level and fail.
+2. Fix the lowest-level logic by bypassing operations on empty DataFrames and decoupling output directories from script locations.
+### Decision
+Adopt lowest-level logic fixes: `analyze.py` checks `df.empty` before applying row-level functions to gracefully retain empty structures, preventing division-by-zero or KeyError crashes. `build_reports.py` was refactored to dynamically accept the output directory path via `sys.argv`, enabling true test isolation.
+### Reasoning
+Handling failures at the source instead of broadly catching exceptions ensures the pipeline fails loudly where appropriate (missing input files) but handles valid edge cases safely (zero eligible records).
+### Trade-offs
+Adds minor structural complexity to pandas operations (explicit `.empty` checks instead of relying on vectorized safety nets), but guarantees robustness under extreme filtering.
+### Consequences
+Pipeline now survives zero-record scenarios without crashing or producing misleading NaNs, and testing can safely isolate and verify failure behavior on missing files.

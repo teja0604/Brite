@@ -16,12 +16,19 @@ def analyze_question_1(df: pd.DataFrame, quality_df: pd.DataFrame) -> dict:
     # Merge for eligibility
     merged = df.merge(quality_df, on="source_row")
     
-    # Apply eligibility
-    eligible = merged[merged.apply(lambda row: q["eligibility_func"](row, row), axis=1)].copy()
+    # Apply eligibility safely
+    if merged.empty:
+        eligible = merged.copy()
+    else:
+        eligible = merged[merged.apply(lambda row: q["eligibility_func"](row, row), axis=1)].copy()
+    
     excluded = len(df) - len(eligible)
     
-    # Apply 30-day outcome classification
-    eligible["outcome_30d"] = eligible.apply(classify_30_day_outcome, axis=1)
+    # Apply 30-day outcome classification safely
+    if eligible.empty:
+        eligible["outcome_30d"] = pd.Series(dtype=str)
+    else:
+        eligible["outcome_30d"] = eligible.apply(classify_30_day_outcome, axis=1)
     
     # Year
     eligible["year"] = eligible["intake_date"].astype(str).str[:4]
@@ -82,9 +89,16 @@ def analyze_question_2(df: pd.DataFrame, quality_df: pd.DataFrame) -> dict:
     q = QUESTIONS["Q2"]
     
     merged = df.merge(quality_df, on="source_row")
-    eligible = merged[merged.apply(lambda row: q["eligibility_func"](row, row), axis=1)].copy()
+    if merged.empty:
+        eligible = merged.copy()
+    else:
+        eligible = merged[merged.apply(lambda row: q["eligibility_func"](row, row), axis=1)].copy()
     
-    eligible["outcome_30d"] = eligible.apply(classify_30_day_outcome, axis=1)
+    if eligible.empty:
+        eligible["outcome_30d"] = pd.Series(dtype=str)
+    else:
+        eligible["outcome_30d"] = eligible.apply(classify_30_day_outcome, axis=1)
+        
     eligible["year"] = eligible["intake_date"].astype(str).str[:4]
     
     # Filter out NOT_OBSERVABLE for denominator
