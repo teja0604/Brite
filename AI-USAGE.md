@@ -128,3 +128,25 @@ I reviewed the dataset formats and the updated `contract.py` parser, ensuring th
 
 Final decision:
 Refactored date parsing to use deterministic rules exclusively, removing `pandas.to_datetime` inference from the contract layer.
+
+### Phase 3 Remediation Policy & Audit
+
+AI contribution:
+AI assisted in designing the remediation policy and the four-tier disposition model (`AUTO_REPAIR`, `RETAIN_WITH_FLAG`, `EXCLUDE_FROM_ANALYSIS`, `UNRESOLVED`). Challenged the blanket assumption that records with invalid dates should be dropped entirely, proposing instead a per-record eligibility matrix (`record_quality.csv`) so that invalid dates are merely excluded from duration analysis but retained for total case count calculations.
+
+My verification:
+I reviewed the disposition definitions, verified the unit tests testing exact duplicate detection, and analyzed the real data reconciliation metrics. I confirmed that the strict separation of detection (Phase 2) from explicit remediation rules prevents undocumented transformations, and that the idempotency and source-row tracking satisfy the auditability requirements.
+
+Final decision:
+Implemented the auditable remediation layer, explicit rule set, and dual-output (cleaned dataset + audit log) architecture as the official Phase 3 deliverable.
+
+### Phase 3 Correction
+
+AI contribution:
+Identified that the current category normalization crossed the boundary from formatting normalization into unsupported semantic inference and that remediation counts were mixing action-level and record-level units.
+
+My verification:
+Reviewed the implementation and checked the remediation behavior against the Phase 2 evidence-first policy and generated outputs.
+
+Final decision:
+Restricted automatic category normalization to formatting-only cases and separated action-level audit metrics from record-level disposition metrics.

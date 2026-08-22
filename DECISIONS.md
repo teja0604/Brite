@@ -140,3 +140,22 @@ Removed unrestricted `pd.to_datetime` inference. Date classification is now stri
 A data-quality pipeline cannot confidently assert anomaly classifications based on silent inference rules. By explicitly enumerating the formats present in the dataset and deterministically checking ambiguity, we prevent false certainty.
 ### Consequences
 Testing produces no pandas warnings. Unambiguous numeric and explicit text formats are accurately mapped without locale guesswork.
+
+## DEC-010 — Remediation Policy and Disposition Model
+### Context
+Phase 3 requires an auditable remediation layer that prepares data for analysis without silently dropping or inventing information.
+### Options considered
+1. Blanket cleaning (e.g. `df.dropna()`, `df.drop_duplicates()`, unrestricted categorical mapping).
+2. Evidence-driven record-level dispositions (`AUTO_REPAIR`, `RETAIN_WITH_FLAG`, `EXCLUDE_FROM_ANALYSIS`, `UNRESOLVED`) that preserve exact provenance.
+### Decision
+Adopt the evidence-driven disposition model:
+- **Dates**: Unambiguous variant dates are auto-repaired to YYYY-MM-DD. Ambiguous or invalid dates are retained as raw strings but flagged `eligible_for_duration_analysis=False`.
+- **Identities**: Exact identical duplicates are collapsed (`AUTO_REPAIR`). Conflicting data or candidate variants are retained without merging.
+- **Categories**: Only formatting-only variants (whitespace padding/casing differences, e.g., `Standard ` -> `Standard`) are auto-repaired. Semantic mappings (e.g., `Standard Case`, `Std.`) are strictly retained without inference, as candidate similarity does not prove semantic equivalence.
+- **Missingness**: Left empty and unresolved rather than imputed. Expected missing values (e.g. closure date for Open cases) are explicitly retained.
+- **Audit Logging**: The audit log (`cleaning_audit.csv`) focuses exclusively on material remediation events—actual transformations, analytic exclusions, exact duplicate drops, and explicitly unresolved issues. Canonical, unchanged values do not generate noise in the audit log.
+- **Record-Level Status**: A precedence-based disposition (`EXCLUDE_FROM_ANALYSIS` -> `UNRESOLVED` -> `RETAIN_WITH_FLAG` -> `AUTO_REPAIR` -> `CLEAN`) is applied at the unique record level in `record_quality.csv` to distinguish action-level operations from final record state.
+### Reasoning
+A blanket clean drops nuance and destroys provenance. By evaluating eligibility per-record-per-analysis, we can safely compute case counts from records that have invalid dates, instead of entirely removing the record from the pipeline. Furthermore, formatting-only normalization is safe, but semantic normalization without explicit organizer mapping introduces false equivalence.
+### Consequences
+Generates a cleaned dataset that retains >99% of cases (dropping only 28 true duplicates), accompanied by a meticulous `cleaning_audit.csv` limited strictly to material interventions, and a `record_quality.csv` eligibility matrix for downstream analysis.
