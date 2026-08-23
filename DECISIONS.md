@@ -344,15 +344,18 @@ S4 outputs a deterministic comparison matrix preserving all physical evidence an
 ### Date
 2026-08-23
 
+### Status
+PROPOSED — PENDING EXPLICIT HUMAN APPROVAL
+
 ### Context
 Phase S5 requires building a deterministic reconciliation policy that converts the evidence produced by S4 into explicit field-level reconciliation decisions. Because there are no existing business rules authorizing source precedence or deduplication, these ambiguities required explicit human review before becoming official policy.
 
-### Decision (Human Approved)
-1. **Field-Level Conflict Precedence**: For genuine `CONFLICT`s, Supplementary wins for `status` and `closure_date` since it provides authoritative operational updates. Original wins for all other fields to prevent arbitrary baseline churn.
-2. **Missing Value Imputation**: For `MISSING_ONE_SIDE`, impute the value from the present side (e.g., Supplementary fills Original's blank) to safely improve completeness.
-3. **Representation Equivalents**: When values are equivalent (e.g. date formats), retain the Original string formatting to minimize arbitrary churn.
-4. **Unavailable Fields**: For `UNAVAILABLE_ONE_SIDE`, retain the available evidence.
-5. **Multi-Record Identities**: For `MANY_TO_ONE` cases, process each Cartesian pair (grouped by original_source_row). This generates one reconciled record for each physical Original row, preserving exactly the same number of physical Original records so downstream anomaly detection correctly evaluates identity variants without silent data loss.
+### AI Recommendation (Pending Explicit Human Approval)
+1. **Field-Level Conflict Precedence**: For genuine `CONFLICT`s, the AI proposes that Supplementary wins for `status` and `closure_date` since it provides authoritative operational updates, while Original wins for all other fields to prevent arbitrary baseline churn.
+2. **Missing Value Imputation**: For `MISSING_ONE_SIDE`, the AI proposes imputing the value from the present side (e.g., Supplementary fills Original's blank) to safely improve completeness.
+3. **Representation Equivalents**: When values are equivalent (e.g. date formats), the AI proposes retaining the Original string formatting to minimize arbitrary churn.
+4. **Unavailable Fields**: For `UNAVAILABLE_ONE_SIDE`, the AI proposes retaining the available evidence.
+5. **Multi-Record Identities**: For `MANY_TO_ONE` cases, the AI proposes processing each Cartesian pair (grouped by original_source_row) without deduplication. This generates one reconciled record for each physical Original row, preserving exactly the same number of physical Original records so downstream anomaly detection correctly evaluates identity variants without silent data loss.
 
-### Consequences
-The reconciled dataset provides exactly one row per physical Original record for S6, preserving the exact row count of the Phase 0-7 baseline. Genuine conflicts are handled deterministically via field-specific precedence. Multi-record complexities are perfectly preserved for the downstream `CANDIDATE_IDENTITY_VARIANT` anomaly detection engine.
+### Consequences (If explicitly approved)
+The reconciled dataset would provide exactly one row per physical Original record for S6, preserving the exact row count of the Phase 0-7 baseline. Genuine conflicts would be handled deterministically via field-specific precedence. Multi-record complexities would be perfectly preserved for the downstream `CANDIDATE_IDENTITY_VARIANT` anomaly detection engine.

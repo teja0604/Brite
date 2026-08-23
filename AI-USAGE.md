@@ -572,8 +572,10 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 
 **My Contribution & Verification**
 - I reviewed the implementation plan explicitly detailing the 4 core reconciliation ambiguities.
-- I explicitly approved the field-specific conflict policy: Supplementary wins for `status` and `closure_date`, Original wins for everything else.
-- I explicitly approved imputing a populated value into a missing value (`MISSING_ONE_SIDE`).
-- I explicitly approved retaining Original formatting for `REPRESENTATION_EQUIVALENT`.
-- I explicitly approved producing exactly one reconciled record per Original row for `MANY_TO_ONE` identities, preserving the exact Original row count for downstream anomaly detection rather than dropping them or silently deduplicating them.
 - I verified raw hashes were untouched.
+
+**Pending Human Decisions (Currently implemented as AI-proposed rules)**
+- **AI-proposed policy pending human approval**: For genuine `CONFLICT`s, Supplementary wins for `status` and `closure_date`, Original wins for everything else.
+- **AI-proposed policy pending human approval**: Imputing a populated value into a missing value (`MISSING_ONE_SIDE`).
+- **AI-proposed policy pending human approval**: Retaining Original formatting for `REPRESENTATION_EQUIVALENT`.
+- **AI-proposed policy pending human approval**: Producing exactly one reconciled record per Original row for `MANY_TO_ONE` identities, grouped by original_source_row (46 cases).
