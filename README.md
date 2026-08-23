@@ -71,7 +71,9 @@ The verified environment requires:
 
 ## Raw Datasets
 
-The solution uses the organizer‑provided raw CSV files as immutable inputs. They are already tracked in the repository, so a fresh clone contains them.
+Raw datasets are immutable inputs and must not be modified.
+
+The solution expects the organizer-provided CSV files at these exact paths:
 
 Expected repository layout:
 
@@ -84,9 +86,11 @@ data/
         └── READ ME FIRST.md
 ```
 
-The raw CSV files must remain unchanged and retain their original filenames. No cleaning, preprocessing, or manual modification should be performed.
+If you are using the organizer-provided ZIP files, extract the datasets and place the corresponding CSV files at the exact paths above. Use the files exactly as provided by the organizer; do not rename, modify, clean, or preprocess them.
 
-The judge does not need to add or move any files; they are present after cloning.
+For confirmation, after extracting the ZIP files, you can verify that the files exist at these locations before running the commands in **Judge Quick Start**.
+
+The current repository already contains these required raw CSV files, so a normal fresh clone does not require any additional data placement.
 
 ## Outputs
 
