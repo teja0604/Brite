@@ -112,19 +112,38 @@ The clean-clone test suite is designed to run without pre-generated `outputs/`. 
 ## Answers to Q1, Q2, and Q3
 
 The three primary evaluator-facing answer files are:
+
 - **Q1** → `outputs/s6/q1.csv`
 - **Q2** → `outputs/s6/q2.csv`
 - **Q3** → `outputs/s6/q3.csv`
 
-**Q1**: Measures the 30-day closure rate and median closure duration, including overall and year-level analysis.
+### Q1 — Closure Performance Over Time
 
-**Q2**: Provides breakdowns of closure performance by the supported dimensions (district and category), using the actual generated `q2.csv` structure (e.g., segmenting by 'Ash Hill', 'Standard', 'Complex', etc.).
+Measures the 30-day closure rate and median closure duration for the primary reconciled population.
 
-**Q3**: Evaluates the priority-triage analysis supported by the reconciled evidence, specifically for 2024 and 2025. The pipeline does NOT fabricate a 2023 baseline where required 2023 priority evidence is unavailable.
+**Result:** The 30-day closure rate decreased from **44.35% in 2023** to **38.57% in 2025**, while median closure duration increased from **34 days** to **38 days**. This indicates worsening closure performance over the period covered by the data.
 
-## Surprise Challenge Handling
+Evidence: `outputs/s6/q1.csv`
 
-The Surprise Challenge supplementary dataset is ingested separately. Identities are explicitly reconciled, and source evidence/provenance is fully preserved. Conflicts follow documented field-level reconciliation policies. For example, if closure dates are conflicting and the rules indicate a supplementary precedence, that specific field takes precedence, while other fields follow their own documented policies.
+### Q2 — Drivers of Closure Performance
+
+Breaks down the same closure metrics by **district and case category** to identify where closure performance differs.
+
+**Result:** Performance varies substantially across districts and categories. For example, median closure duration ranges from **30 days in Ash Hill** to **48 days in Weybridge**. By category, **Expedited** cases have a median of **14 days**, while **Complex** cases have a median of **73 days**.
+
+These are observed differences in the reconciled data; the pipeline does not claim that these factors independently cause the differences.
+
+Evidence: `outputs/s6/q2.csv`
+
+### Q3 — Priority Triage Analysis
+
+Evaluates the priority-triage metrics for the years supported by the reconciled evidence.
+
+**Result:** From 2024 to 2025, the 30-day closure rate decreased from **41.63% to 37.30%**, while median closure duration increased from **35 days to 38.5 days**.
+
+A 2023 priority baseline is **not reported**, because the required 2023 priority evidence is unavailable. The pipeline therefore does not fabricate a 2023 comparison.
+
+Evidence: `outputs/s6/q3.csv`
 
 ## Independent Verification
 
