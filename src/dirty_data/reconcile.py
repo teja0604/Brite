@@ -39,21 +39,7 @@ def reconcile_dataset(
         match_status = idx_row.match_status
         
         # ---------------------------------------------------------
-        if cardinality not in ["ONE_TO_ONE", "ORIGINAL_ONLY"]:
-            # Drop multi-record identities as UNRESOLVED
-            audit_logs.append({
-                "case_id": case_id,
-                "field": "ALL",
-                "original_value": "MULTIPLE",
-                "supplementary_value": "MULTIPLE",
-                "comparison_result": "NOT_COMPARABLE",
-                "reconciliation_decision": "EXCLUDE_FROM_ANALYSIS",
-                "selected_value": "",
-                "reason": f"Multi-record identity ({cardinality}) excluded from reconciliation.",
-                "rule_applied": "RULE-S5-MULTI-RECORD"
-            })
-            continue
-            
+        # ---------------------------------------------------------
         if match_status == "ORIGINAL_ONLY":
             # Pass through the original record exactly as-is
             case_data = aligned_grouped.get_group(case_id)
@@ -76,97 +62,107 @@ def reconcile_dataset(
             })
             continue
             
-        # ONE_TO_ONE logic
+        if match_status == "SUPPLEMENTARY_ONLY":
+            continue
+            
+        # MATCHED logic (handles ONE_TO_ONE and MANY_TO_ONE via grouping)
         comp_rows = comp_grouped.get_group(case_id)
         
-        # Fetch base rows for non-compared fields (like client_ref)
-        case_data = aligned_grouped.get_group(case_id)
-        orig_row = case_data[case_data["source_system"] == "ORIGINAL"].iloc[0]
-        supp_row = case_data[case_data["source_system"] == "SUPPLEMENTARY"].iloc[0]
-        
-        reconciled_rec = {"case_id": case_id}
-        
-        # Carry over non-compared fields safely
-        reconciled_rec["client_ref"] = orig_row.get("client_ref", "")
-        reconciled_rec["extract_date"] = orig_row.get("extract_date", "")
-        reconciled_rec["source_system"] = "RECONCILED"
-        
-        has_conflict = False
-        
-        for c_row in comp_rows.itertuples():
-            field = c_row.field_name
-            res = c_row.comparison_result
-            o_val = str(c_row.original_value)
-            s_val = str(c_row.supplementary_value)
+        # We group by original_source_row to produce exactly one reconciled record per Original physical row
+        # This elegantly handles MANY_TO_ONE without deduplicating or dropping the 46 cases.
+        for orig_idx, pair_group in comp_rows.groupby("original_source_row"):
+            case_data = aligned_grouped.get_group(case_id)
+            orig_row = case_data[(case_data["source_system"] == "ORIGINAL") & (case_data["source_row_index"] == orig_idx)].iloc[0]
             
-            selected_val = ""
-            decision = ""
-            rule = ""
-            reason = ""
+            reconciled_rec = {"case_id": case_id}
             
-            if res == "EXACT_MATCH":
-                selected_val = o_val
-                decision = "RETAIN_MATCH"
-                rule = "RULE-S5-MATCH"
-                reason = "Values match exactly"
+            # Carry over non-compared fields safely
+            reconciled_rec["client_ref"] = orig_row.get("client_ref", "")
+            reconciled_rec["extract_date"] = orig_row.get("extract_date", "")
+            reconciled_rec["source_system"] = "RECONCILED"
+            
+            has_conflict = False
+        
+            for c_row in pair_group.itertuples():
+                field = c_row.field_name
+                res = c_row.comparison_result
+                o_val = str(c_row.original_value)
+                s_val = str(c_row.supplementary_value)
                 
-            elif res == "REPRESENTATION_EQUIVALENT":
-                # Option 1: Retain Original string representation
-                selected_val = o_val
-                decision = "RETAIN_ORIGINAL_FORMAT"
-                rule = "RULE-S5-REP-EQUIV"
-                reason = "Values are equivalent; defaulting to original baseline formatting"
+                selected_val = ""
+                decision = ""
+                rule = ""
+                reason = ""
                 
-            elif res == "UNAVAILABLE_ONE_SIDE":
-                # Retain the side that has the field
-                if c_row.original_presence == "PRESENT" or c_row.original_presence == "MISSING":
+                if res == "EXACT_MATCH":
                     selected_val = o_val
-                    decision = "RETAIN_ORIGINAL_AVAILABLE"
-                    rule = "RULE-S5-UNAVAILABLE"
-                    reason = "Field unavailable in Supplementary; preserving Original evidence"
-                else:
-                    selected_val = s_val
-                    decision = "RETAIN_SUPPLEMENTARY_AVAILABLE"
-                    rule = "RULE-S5-UNAVAILABLE"
-                    reason = "Field unavailable in Original; preserving Supplementary evidence"
+                    decision = "RETAIN_MATCH"
+                    rule = "RULE-S5-MATCH"
+                    reason = "Values match exactly"
                     
-            elif res == "MISSING_ONE_SIDE":
-                # Option 1: Impute from the present side
-                if c_row.original_presence == "MISSING":
-                    selected_val = s_val
-                    decision = "IMPUTE_FROM_SUPPLEMENTARY"
-                    rule = "RULE-S5-IMPUTE"
-                    reason = "Original is missing; imputing from present Supplementary value"
-                else:
+                elif res == "REPRESENTATION_EQUIVALENT":
+                    # Option 1: Retain Original string representation
                     selected_val = o_val
-                    decision = "IMPUTE_FROM_ORIGINAL"
-                    rule = "RULE-S5-IMPUTE"
-                    reason = "Supplementary is missing; imputing from present Original value"
+                    decision = "RETAIN_ORIGINAL_FORMAT"
+                    rule = "RULE-S5-REP-EQUIV"
+                    reason = "Values are equivalent; defaulting to original baseline formatting"
                     
-            elif res in ["CONFLICT", "INVALID_COMPARISON"]:
-                # Option 4 (Unresolved): Retain baseline Original evidence but mark as UNRESOLVED_CONFLICT
-                has_conflict = True
-                selected_val = o_val
-                decision = "RETAIN_BASELINE_AS_UNRESOLVED"
-                rule = "RULE-S5-CONFLICT"
-                reason = "Genuine conflict or invalid comparison; retaining Original evidence and marking as unresolved."
-            
-            reconciled_rec[field] = selected_val
-            
-            audit_logs.append({
-                "case_id": case_id,
-                "field": field,
-                "original_value": o_val,
-                "supplementary_value": s_val,
-                "comparison_result": res,
-                "reconciliation_decision": decision,
-                "selected_value": selected_val,
-                "reason": reason,
-                "rule_applied": rule
-            })
-            
-        reconciled_rec["reconciliation_status"] = "CONFLICT" if has_conflict else "CLEAN"
-        reconciled_records.append(reconciled_rec)
+                elif res == "UNAVAILABLE_ONE_SIDE":
+                    # Retain the side that has the field
+                    if c_row.original_presence == "PRESENT" or c_row.original_presence == "MISSING":
+                        selected_val = o_val
+                        decision = "RETAIN_ORIGINAL_AVAILABLE"
+                        rule = "RULE-S5-UNAVAILABLE"
+                        reason = "Field unavailable in Supplementary; preserving Original evidence"
+                    else:
+                        selected_val = s_val
+                        decision = "RETAIN_SUPPLEMENTARY_AVAILABLE"
+                        rule = "RULE-S5-UNAVAILABLE"
+                        reason = "Field unavailable in Original; preserving Supplementary evidence"
+                        
+                elif res == "MISSING_ONE_SIDE":
+                    # Option 1: Impute from the present side
+                    if c_row.original_presence == "MISSING":
+                        selected_val = s_val
+                        decision = "IMPUTE_FROM_SUPPLEMENTARY"
+                        rule = "RULE-S5-IMPUTE"
+                        reason = "Original is missing; imputing from present Supplementary value"
+                    else:
+                        selected_val = o_val
+                        decision = "IMPUTE_FROM_ORIGINAL"
+                        rule = "RULE-S5-IMPUTE"
+                        reason = "Supplementary is missing; imputing from present Original value"
+                        
+                elif res in ["CONFLICT", "INVALID_COMPARISON"]:
+                    # Option 3 (Field-specific): Supplementary wins for status and closure_date
+                    has_conflict = True
+                    if field in ["status", "closure_date"]:
+                        selected_val = s_val
+                        decision = "SUPPLEMENTARY_WINS"
+                        rule = "RULE-S5-CONFLICT"
+                        reason = "Supplementary source provides authoritative operational updates for this field."
+                    else:
+                        selected_val = o_val
+                        decision = "ORIGINAL_WINS"
+                        rule = "RULE-S5-CONFLICT"
+                        reason = "Original source retains precedence for this field to prevent arbitrary baseline churn."
+                
+                reconciled_rec[field] = selected_val
+                
+                audit_logs.append({
+                    "case_id": case_id,
+                    "field": field,
+                    "original_value": o_val,
+                    "supplementary_value": s_val,
+                    "comparison_result": res,
+                    "reconciliation_decision": decision,
+                    "selected_value": selected_val,
+                    "reason": reason,
+                    "rule_applied": rule
+                })
+                
+            reconciled_rec["reconciliation_status"] = "CONFLICT" if has_conflict else "CLEAN"
+            reconciled_records.append(reconciled_rec)
         
     recon_df = pd.DataFrame(reconciled_records)
     
