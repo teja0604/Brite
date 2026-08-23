@@ -332,7 +332,7 @@ Phase S4 requires comparing fields from the Original and Supplementary canonical
 3. **Date Comparison**: Dates are parsed using existing utilities. If formats differ but the underlying day is identical, we classify as REPRESENTATION_EQUIVALENT. Ambiguous and malformed dates are flagged as INVALID_COMPARISON without arbitrary guessing.
 4. **Status Comparison**: Derived supplementary statuses are compared semantically with original statuses.
 5. **Provenance**: Every physical row comparison preserves original_source_row and supplementary_source_row.
-6. **Multi-Record Cardinality**: For cases with multiple physical records (e.g., MANY_TO_ONE), S4 generates a Cartesian product of pairwise comparisons across the identity. This generates exhaustive evidence for every physical row combination without silently introducing deduplication or source precedence logic.
+6. **Multi-Record Cardinality**: For identities with multiple physical records, S4 uses Cartesian comparison to generate exhaustive comparison evidence across all Original × Supplementary physical-record combinations. These combinations are comparison candidates only; they do not establish confirmed physical-record correspondence or authorize deduplication. Human review approved this comparison strategy.
 7. **No Precedence**: S4 creates an artifact of evidence only. There is no 'winner' field.
 
 ### Consequences

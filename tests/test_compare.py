@@ -84,22 +84,22 @@ def test_compare_multi_record_and_provenance():
     # 16. Provenance preservation
     # 17. Deterministic output
     orig_data = pd.DataFrame({
-        "case_id": ["A1", "A1"],
+        "case_id": ["A100", "A100"],
         "district": ["D1", "D2"],
         "source_system": ["ORIGINAL", "ORIGINAL"],
-        "source_row_index": [10, 11]
+        "source_row_index": [10, 20]
     })
     supp_data = pd.DataFrame({
-        "case_id": ["A1"],
+        "case_id": ["A100"],
         "district": ["D1"],
         "source_system": ["SUPPLEMENTARY"],
-        "source_row_index": [20]
+        "source_row_index": [30]
     })
     
     aligned_df, index_df, _ = match_identities(orig_data, supp_data)
     comp_df = compare_fields(aligned_df, index_df)
     
-    # 8 fields per pair, 2 pairs (10 vs 20, 11 vs 20) -> 16 comparisons
+    # 8 fields per pair, 2 pairs (10 vs 30, 20 vs 30) -> 16 comparisons
     assert len(comp_df) == 16
     
     d1_comparisons = comp_df[comp_df["field_name"] == "district"].sort_values(by="original_source_row")
@@ -107,18 +107,27 @@ def test_compare_multi_record_and_provenance():
     
     first_comp = d1_comparisons.iloc[0]
     assert first_comp["original_source_row"] == 10
-    assert first_comp["supplementary_source_row"] == 20
+    assert first_comp["supplementary_source_row"] == 30
     assert first_comp["comparison_result"] == "EXACT_MATCH"
     
     second_comp = d1_comparisons.iloc[1]
-    assert second_comp["original_source_row"] == 11
-    assert second_comp["supplementary_source_row"] == 20
+    assert second_comp["original_source_row"] == 20
+    assert second_comp["supplementary_source_row"] == 30
     assert second_comp["comparison_result"] == "CONFLICT"
     
 def test_no_precedence():
     # 18. Source precedence is absent
     assert _compare_single_field("priority", "Standard", "Expedited")[0] == "CONFLICT"
     # Note: our schema explicitly lacks a "winner" column to enforce this constraint
+    orig_data = pd.DataFrame({"case_id": ["A1"], "source_system": ["ORIGINAL"], "source_row_index": [1]})
+    supp_data = pd.DataFrame({"case_id": ["A1"], "source_system": ["SUPPLEMENTARY"], "source_row_index": [2]})
+    aligned_df, index_df, _ = match_identities(orig_data, supp_data)
+    comp_df = compare_fields(aligned_df, index_df)
+    
+    assert "winner" not in comp_df.columns
+    assert "authoritative_source" not in comp_df.columns
+    assert "selected_record" not in comp_df.columns
+    assert "deduplicated_record" not in comp_df.columns
 
 def test_source_evidence_preserved():
     # 19. Source values remain unchanged
