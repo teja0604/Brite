@@ -259,3 +259,17 @@ A dedicated canonical model separates the "vocabulary" problem from the "reconci
 ### Consequences
 The system now has a defined target structure for the future Source Adapters (Phase S2) to map into, ensuring both datasets can be compared apples-to-apples in Phase S6.
 
+
+## DEC-017 — Original Source Canonical Adapter (S2 Part A)
+### Context
+We must translate the Original dataset into the Canonical Schema defined in S1 Part B without destroying the frozen analytical baseline or prematurely mixing datasets.
+### Options considered
+1. Integrate the adapter directly into the existing ingestion or detection pipeline.
+2. Build a standalone, deterministic adapter module strictly scoped to structure mapping.
+### Decision
+Adopt a standalone, isolated adapter module (`src/dirty_data/adapter.py`). The adapter merely filters and enriches the original dataframe with canonical metadata (`source_system` = ORIGINAL, `source_row_index`) without replacing the original ingestion/cleaning pipeline behavior.
+### Reasoning
+Keeping the adapter isolated ensures 100% backward compatibility with the existing Q1/Q2/Q3 logic. It preserves empty strings rather than imputing defaults, and it faithfully forwards the original `status` column without blindly re-evaluating malformed dates. This adheres strictly to the rule that an adapter translates but does not validate or reconcile.
+### Consequences
+The original data can now be transformed into canonical records on demand for later S6 reconciliation without polluting the existing Phase 0-7 operational pipeline.
+

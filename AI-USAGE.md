@@ -444,3 +444,31 @@ S1 Part A completed and approved for the next phase.
 **Decision**
 Establish a strict, distinct Canonical Schema that neutralizes vocabulary differences between the sources while preserving explicit null/unavailable states and supporting metadata tracking.
 
+
+### Phase S2 Part A — Original Source Adapter
+
+**AI Contribution**
+- Implemented \dapt_original_to_canonical\ in \src/dirty_data/adapter.py\ to deterministically map the Original data to the Canonical Schema.
+- Configured the adapter to preserve missingness by maintaining empty strings instead of imputing zeros for missing fields.
+- Ensured the adapter retains the exact \status\ from the original dataset instead of blindly re-deriving it from malformed dates.
+- Authored 4 focused adapter tests in \	ests/test_adapter.py\ verifying mappings, missing value preservation, malformed date pass-through, and determinism.
+
+**My Contribution & Verification**
+- Reviewed the original field mappings to ensure stable, 1:1 translation for existing fields.
+- Checked the adapter against the CANONICAL_SCHEMA to confirm \source_system\ ('ORIGINAL') and \extract_date\ ('') were applied without fabrication.
+- Verified that no supplementary data processing, merging, or identity matching was introduced in this phase.
+- Confirmed missing values and malformed dates were accurately preserved without altering existing anomaly behaviors.
+- Reviewed the diff and regression test results (77/77) to guarantee the frozen analysis baseline was not impacted.
+- Decided the isolated adapter correctly fulfills S2 Part A boundaries without premature integration.
+
+**Verification Evidence**
+- Collected: 77 items
+- Passed: 77
+- Failed: 0
+- Original raw CSV SHA-256 verified unchanged (f65bec45...).
+- Commit: bbb246a
+- Push completed successfully.
+
+**Decision**
+Adopt a standalone original source adapter that maps 1:1 into the Canonical Schema, maintaining missingness and source provenance without interfering with the existing operational pipeline.
+
