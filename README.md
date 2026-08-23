@@ -1,222 +1,252 @@
 # Brite Hackathon — Dirty Data, Real Decisions
 
-## 1. Quick Start
+## 1. What this project does
 
-### Clone
+This is a deterministic Python data-quality, reconciliation, and analytics pipeline. It processes the organizer's original dirty dataset alongside the Surprise Challenge supplementary dataset. The pipeline preserves raw evidence and provenance by never modifying source files. It systematically performs identity matching, field-level comparison, explicit reconciliation, analytics, and independent verification. It produces defensible answers to the organizer's three questions through dedicated Q1, Q2, and Q3 outputs.
 
+## 2. Requirements
+
+Python: Python 3.8+ (or compatible 3.x)
+Git: required
+Operating Systems: Windows, Linux, macOS
+Database: not required
+Frontend: not required
+Node.js: not required
+Dependencies: `pandas`, `pytest`, `numpy` (as specified in `requirements.txt`)
+
+## 3. Clone the repository
+
+Windows PowerShell:
+```powershell
+git clone https://github.com/teja0604/Brite.git
+cd Brite
+```
+
+Linux/macOS:
 ```bash
 git clone https://github.com/teja0604/Brite.git
 cd Brite
 ```
 
-### Windows PowerShell
+## 4. Create Python environment and install dependencies
 
+Windows PowerShell:
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-$env:PYTHONPATH="src"
 ```
 
-### Linux/macOS
-
+Linux/macOS:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-export PYTHONPATH=src
 ```
 
-## 2. Run Tests
+## 5. Verify organizer input data
 
-### Windows:
+The required raw files for the complete pipeline, including the Surprise Challenge, are:
+- `data/raw/case-export-2023-2025.csv`
+- `data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
+
+These are organizer-provided raw inputs and must not be manually edited. The supplementary CSV is now committed to the repository, meaning a fresh clone will already contain it, allowing the pipeline to execute immediately.
+
+## 6. Set PYTHONPATH
+
+Windows PowerShell:
+```powershell
+$env:PYTHONPATH="src"
+```
+
+Linux/macOS:
+```bash
+export PYTHONPATH=src
+```
+This allows the `dirty_data` package to be imported correctly from the `src/` directory.
+
+## 7. Run the complete test suite FIRST
+
+Windows PowerShell:
 ```powershell
 $env:PYTHONPATH="src"; python -m pytest -v
 ```
 
-### Linux/macOS:
+Linux/macOS:
 ```bash
 PYTHONPATH=src python -m pytest -v
 ```
 
-The test suite covers edge-case data scenarios, deterministic ingestion rules, identity mapping permutations, reconciliation logic, and corruption matrix adversarial testing.
+The 127 tests cover edge-case data scenarios, deterministic ingestion rules, identity mapping permutations, reconciliation logic, and corruption matrix adversarial testing. 
 
-Expected result: all tests pass.
+**Expected result**: all tests pass. If tests fail, stop and investigate instead of ignoring the failure.
 
-## 3. Complete Surprise Challenge Execution
+## 8. Run the complete production pipeline
 
-The pipeline requires specific raw inputs provided by the organizer to execute.
-
-The original input is expected at:
-`data/raw/case-export-2023-2025.csv`
-
-The supplementary Surprise Challenge input is expected at:
-`data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
-
-Both files are included in this repository to ensure a fresh clone can immediately reproduce the entire pipeline without requiring manual data placement. Do not modify the CSV contents.
-
-The pipeline executes in two explicit stages.
+The pipeline must be executed in two distinct stages.
 
 First, generate the frozen upstream artifacts (S2-S5):
 
-### Windows:
+Windows PowerShell:
 ```powershell
 $env:PYTHONPATH="src"; python -m dirty_data.freeze_artifacts
 ```
-### Linux/macOS:
+
+Linux/macOS:
 ```bash
 PYTHONPATH=src python -m dirty_data.freeze_artifacts
 ```
 
 Second, run the official S6 release which consumes the frozen artifacts, performs analytics, and executes independent verification:
 
-### Windows:
+Windows PowerShell:
 ```powershell
 $env:PYTHONPATH="src"; python run_s6_release.py
 ```
-### Linux/macOS:
+
+Linux/macOS:
 ```bash
 PYTHONPATH=src python run_s6_release.py
 ```
 
-Success is confirmed when the script outputs `S6 release verification passed` and verification artifacts are generated.
+## 9. What successful execution looks like
 
-## 4. What the Project Does
+Successful execution outputs `S6 release verification passed` to the console. This indicates that:
+- Tests have passed (if run previously)
+- Frozen JSON artifacts were successfully generated from the raw data
+- S6 analytics completed its calculations
+- The independent mathematical verifier passed
+- Corruption/tamper verification passed perfectly
+- The final release runner exited without errors
 
-This project is a strictly reproducible Python data pipeline. It does not use a web application, dashboard, or database.
+## 10. Where the outputs are stored
 
-It processes the dirty data through explicit, auditable stages:
-Raw data → deterministic ingestion → profiling → anomaly detection → auditable remediation → analytical analysis → supplementary identity matching → field-level comparison → reconciliation → frozen evidence → S6 analytics → independent verification.
+### Final analytical outputs
+- `outputs/s6/q1.csv`: Answer and evidence for Question 1 (Closure Times)
+- `outputs/s6/q2.csv`: Answer and evidence for Question 2 (Drivers of Change)
+- `outputs/s6/q3.csv`: Answer and evidence for Question 3 (Triage Process)
 
-Every data-quality decision and reconciliation rule is explicitly recorded, preserving all evidence and retaining deterministic traceability.
+### Supporting outputs
+- `outputs/s6/observations.csv`: The primary reconciled dataset eligible for analysis
+- `outputs/s6/exclusions.csv`: Records rejected from analysis due to logical errors
+- `outputs/s6/supplementary_only.csv`: Records existing only in the supplementary dataset
+- `outputs/s6/many_to_one_physical.csv`: Resolved multi-record identities
+- `outputs/s6/verification.json`: Independent verifier's mathematical audit results
+- `outputs/s6_population_disposition.csv`: Tracking for how every record was handled
 
-## 5. Technology Stack
+### Frozen evidence
+- `outputs/frozen/`: Immutable collection of S2-S5 JSON artifacts (e.g., `s2_original_canonical.json`, `s5_audit.json`) used as evidence for S6.
 
-| Technology | Why it is used |
-|---|---|
-| Python | Reproducible data processing and analytical logic |
-| pandas | Tabular CSV processing |
-| pytest | Regression, edge-case, adversarial, and verification testing |
-| numpy | Numerical calculations via pandas |
-| CSV/JSON | Transparent and portable data/evidence artifacts |
-| Git | Versioned engineering history |
+## 11. How to inspect the final answers
 
-A database, API, frontend, or heavy data-engineering framework was not required because the challenge focuses on auditable CSV cleaning, deterministic analytical methodology, and reproducible calculations rather than interactive user serving or distributed scaling.
+Windows PowerShell:
+```powershell
+Import-Csv outputs\s6\q1.csv | Format-Table
+Import-Csv outputs\s6\q2.csv | Format-Table
+Import-Csv outputs\s6\q3.csv | Format-Table
+```
 
-## 6. Input Data
+Linux/macOS:
+```bash
+cat outputs/s6/q1.csv | column -t -s,
+cat outputs/s6/q2.csv | column -t -s,
+cat outputs/s6/q3.csv | column -t -s,
+```
+- `q1.csv` = Question 1
+- `q2.csv` = Question 2
+- `q3.csv` = Question 3
 
-**Original:**
-`data/raw/case-export-2023-2025.csv`
-This is the baseline raw dataset containing case records, dates, and priorities.
-
-**Supplementary:**
-`data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
-This is the operational update provided during the Surprise Challenge.
-
-Both files are **organizer-provided raw inputs**. They are never overwritten. All transformations result in generated outputs inside the `outputs/` directory.
-
-## 7. Important Outputs
-
-These are the core outputs genuinely produced by the pipeline in the `outputs/` directory.
-
-### Baseline / Cleaning
-- **s2_original_canonical.json**: The baseline cleaned dataset adhering to a strict canonical schema without silent date assumptions.
-- **s2_supplementary_canonical.json**: The canonicalized supplementary dataset.
-
-### Evidence / Reporting
-- **s3_aligned.json**: The physical matched identity ledger preserving all raw duplicate records.
-- **s3_identity_index.json**: The cardinality classifications (`MANY_TO_ONE`, `SUPPLEMENTARY_ONLY`, etc.).
-- **s4_comparison.json**: Record-by-record deterministic field comparisons (`CONFLICT`, `MISSING_ONE_SIDE`, etc.).
-- **s5_audit.json**: The exact cleaning and reconciliation decision log for every modified or imputed value.
-
-### Surprise Challenge / S6
-- **outputs/frozen/**: The immutable collection of S2-S5 JSON artifacts used as evidence for S6.
-- **outputs/s6_population_disposition.csv**: Tracks exactly how every input row was handled (e.g., `PRIMARY_CASE`, `EXCLUDED_WITH_REASON`).
-- **outputs/s6/observations.csv**: The final, reconciled population eligible for analysis, containing explicit origin provenance.
-- **outputs/s6/exclusions.csv**: Records rejected from analysis due to logical errors or date contradictions.
-- **outputs/s6/q1.csv**, **q2.csv**, **q3.csv**: The final answers to the organizer's analytical questions.
-- **outputs/s6/supplementary_only.csv**: Separately evaluated records that only existed in the supplementary source.
-- **outputs/s6/many_to_one_physical.csv**: Separately evaluated multi-record identities.
-- **outputs/s6/verification.json**: The independent verifier's mathematical audit results.
-
-## 8. Surprise Challenge Flow
+## 12. Architecture / execution flow
 
 ```text
-Original CSV
-     +
-Supplementary CSV
-     ↓
-Canonical representation
-     ↓
+Original raw CSV
+        +
+Supplementary raw CSV
+        ↓
+Canonical ingestion
+        ↓
 Identity matching
-     ↓
-Field comparison
-     ↓
+        ↓
+Field-level comparison
+        ↓
 Reconciliation
-     ↓
+        ↓
 Frozen evidence
-     ↓
+        ↓
 S6 analytics
-     ↓
+        ↓
 Independent verification
+        ↓
+Final Q1 / Q2 / Q3 outputs
 ```
 
-The system performs **explicit identity matching** to map records without immediately destroying them. It then performs **field-level reconciliation** with **documented conflict precedence** (e.g., Supplementary wins on closure dates, Original wins on business categories). 
+## 13. Surprise Challenge handling
 
-Every value retains exact source-row **provenance**. **MANY_TO_ONE handling** preserves Original physical records without creating **synthetic durations**, and the **supplementary-only population** is maintained and analyzed independently. Data lacking sufficient evidence triggers **explicit exclusions**.
+The supplementary operational data is ingested separately without modifying the original baseline. Identities are matched explicitly, and field-level conflicts are reconciled using documented precedence policies (e.g., Supplementary wins on closure dates). Source-row provenance is preserved for all fields. `MANY_TO_ONE` cases are handled according to frozen policy to avoid generating synthetic records, and supplementary-only records are retained independently. Final analytics operate on this rigorously documented population.
 
-## 9. Analytical Questions
+## 14. Data safety and auditability
 
-### Question 1
-**Have case closure times increased between 2023 and 2025, and if so, by how much?**
-
-### Question 2
-**If closure times have changed, what is driving the change?**
-
-### Question 3
-**Did the case triage process introduced during 2024 reduce closure times for high-priority cases?**
-
-The pipeline calculates the supported answers with explicit denominators, eligibility rules, and confidence levels. Unsupported assumptions are explicitly flagged as unanswerable.
-
-## 10. Data Safety and Auditability
-
-- Raw data is not overwritten.
-- Transformations produce derived outputs.
+- Raw inputs are not modified.
 - Ambiguous dates are not silently guessed.
-- Identity variants are not silently merged.
-- Cleaning decisions are logged.
+- Identity variants are not blindly merged.
+- Reconciliation decisions are traceable.
 - Source-row provenance is preserved.
-- Reconciliation decisions are explicit.
-- Analytical outputs are independently verified.
+- Analytical exclusions are explicit.
+- Final results are independently verified.
+- Outputs are deterministic.
 
-## 11. Independent Verification
+## 15. Judge Quick Start
 
-### Windows:
+**Windows PowerShell:**
 ```powershell
-$env:PYTHONPATH="src"; python run_s6_release.py
+git clone https://github.com/teja0604/Brite.git
+cd Brite
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+$env:PYTHONPATH="src"
+python -m pytest -v
+python -m dirty_data.freeze_artifacts
+python run_s6_release.py
+
+# Inspect Outputs
+Get-Content outputs\s6\q1.csv
+Get-Content outputs\s6\q2.csv
+Get-Content outputs\s6\q3.csv
 ```
-### Linux/macOS:
+
+**Linux/macOS:**
 ```bash
-PYTHONPATH=src python run_s6_release.py
+git clone https://github.com/teja0604/Brite.git
+cd Brite
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+export PYTHONPATH=src
+python -m pytest -v
+python -m dirty_data.freeze_artifacts
+python run_s6_release.py
+
+# Inspect Outputs
+cat outputs/s6/q1.csv
+cat outputs/s6/q2.csv
+cat outputs/s6/q3.csv
 ```
 
-The project contains independent verification logic that checks final analytical artifacts against upstream evidence. This process reads directly from the frozen JSON evidence, bypassing the S6 analytics logic entirely. It includes adversarial corruption testing to detect tampered or mathematically inconsistent analytical outputs, ensuring results aren't simply echoing a flawed calculation.
+## 16. Troubleshooting
 
-## 12. Reproducibility Checklist
+- **Python not found**: Ensure Python 3.8+ is installed and available in your system's PATH.
+- **Virtual environment activation fails**: On Windows, you may need to run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted`.
+- **Missing dependency**: Verify that your virtual environment is active before running `pip install -r requirements.txt`.
+- **ModuleNotFoundError for 'dirty_data'**: You must set your PYTHONPATH appropriately (e.g. `$env:PYTHONPATH="src"`).
+- **Missing frozen artifacts**: Run `python -m dirty_data.freeze_artifacts` before `run_s6_release.py`.
+- **Test failure**: Do not bypass test failures; they enforce critical data safety. Verify that the raw inputs haven't been modified.
 
-1. Clone repository.
-2. Install dependencies.
-3. (Optional) Verify raw inputs are present in `data/raw`.
-4. Set PYTHONPATH=src.
-5. Run the complete test suite.
-6. Generate required frozen evidence.
-7. Run the official release runner.
-8. Confirm verification succeeds.
-9. Review final outputs.
-
-## 13. Repository Structure
+## 17. Repository structure
 
 ```text
 Brite/
@@ -234,93 +264,26 @@ Brite/
 └── README.md
 ```
 
-## 14. Troubleshooting
+## 18. Technology stack
 
-### Python module not found
+- **Python** — deterministic data-processing and analytics pipeline.
+- **pandas** — CSV/tabular processing.
+- **pytest** — automated regression and adversarial testing.
+- **Git** — reproducible version history.
 
-**Windows:**
-```powershell
-$env:PYTHONPATH="src"
-```
-**Linux/macOS:**
-```bash
-export PYTHONPATH=src
-```
+## 19. Why no frontend/database/API
 
-### Missing supplementary input
-Ensure you have not deleted the repository's provided supplementary file at:
-`data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
+The organizer challenge is fundamentally a reproducible data-processing and analytical task involving static CSV datasets. A deterministic Python CLI pipeline is entirely sufficient for providing auditable results and avoids unnecessary deployment complexity or heavyweight infrastructure.
 
-### Missing frozen artifacts
-Generate the upstream artifacts before running analytics:
-```powershell
-$env:PYTHONPATH="src"; python -m dirty_data.freeze_artifacts
-```
+## 20. Final evaluator checklist
 
-### Tests fail
-```powershell
-$env:PYTHONPATH="src"; python -m pytest -v
-```
-Do not bypass failing tests; they enforce data safety constraints.
-
-## 15. Judge / Evaluation Quick Path
-
-### Windows
-```powershell
-# 1. Clone
-git clone https://github.com/teja0604/Brite.git
-cd Brite
-
-# 2. Create environment & 3. Install requirements
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-
-# 4. (Optional) Verify organizer inputs
-# Verify case-export-supplementary.csv is in data/raw/2 - Dirty Data, Real Decisions/
-
-# 5. Set PYTHONPATH
-$env:PYTHONPATH="src"
-
-# 6. Run pytest
-python -m pytest -v
-
-# 7. Generate frozen artifacts
-python -m dirty_data.freeze_artifacts
-
-# 8. Run official S6 release & 9. Confirm verification
-python run_s6_release.py
-
-# 10. Review final outputs in outputs/s6/
-```
-
-### Linux/macOS
-```bash
-# 1. Clone
-git clone https://github.com/teja0604/Brite.git
-cd Brite
-
-# 2. Create environment & 3. Install requirements
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-
-# 4. (Optional) Verify organizer inputs
-# Verify case-export-supplementary.csv is in data/raw/2 - Dirty Data, Real Decisions/
-
-# 5. Set PYTHONPATH
-export PYTHONPATH=src
-
-# 6. Run pytest
-python -m pytest -v
-
-# 7. Generate frozen artifacts
-python -m dirty_data.freeze_artifacts
-
-# 8. Run official S6 release & 9. Confirm verification
-python run_s6_release.py
-
-# 10. Review final outputs in outputs/s6/
-```
+- [ ] Repository cloned
+- [ ] Python environment created
+- [ ] Dependencies installed
+- [ ] Raw organizer inputs present
+- [ ] Tests pass
+- [ ] Frozen artifacts generated
+- [ ] S6 release passes
+- [ ] Independent verification passes
+- [ ] Q1/Q2/Q3 outputs generated
+- [ ] Final outputs available under `outputs/s6/`
