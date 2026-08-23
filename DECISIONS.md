@@ -232,3 +232,16 @@ Adopt sys.path injection (`sys.path.insert(0, str(Path(__file__).resolve().paren
 This is the minimal, least-intrusive fix. It avoids forcing the evaluator to configure environment variables and eliminates packaging complexity that isn't required for a simple data analysis pipeline.
 ### Consequences
 The pipeline runs completely isolated out-of-the-box on any OS without ModuleNotFoundError for internal dirty_data imports.
+
+## DEC-015 — Surprise Source Contracts (S1 Part A)
+### Context
+The Surprise Challenge introduced a second source dataset with a different schema and missing fields. We need to validate and ingest this data without contaminating the frozen, verified logic of the original pipeline.
+### Options considered
+1. Weaken the original schema by making fields optional or changing their expected names to accommodate the new source.
+2. Define a separate supplementary source contract and keep the original contract intact.
+### Decision
+Keep the original contract exactly as it is (`ORIGINAL_SCHEMA`) and define a separate `SUPPLEMENTARY_SCHEMA` that exactly matches the expectations of the new source (including missing `status`, `client_ref`, and `contact_count`).
+### Reasoning
+Source-specific contracts prevent schema drift from contaminating the original pipeline. It forces us to handle the structural differences explicitly in a later canonical mapping phase rather than silently guessing or inventing mappings at the ingestion layer.
+### Consequences
+We can now ingest and validate both sources deterministically according to their own rules, which enables a safe canonical transformation and field-level reconciliation in subsequent phases.

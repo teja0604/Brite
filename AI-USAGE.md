@@ -193,3 +193,10 @@ AI assisted in creating a clean-clone isolation test environment outside the rep
 I observed the simulated fresh clone execution pass all regression tests (67/67). I verified that no absolute paths remained in the codebase and that the raw source data was immutable and byte-for-byte identical to the original.
 **Final decision:**
 Approved the pipeline as fully reproducible and isolated, and approved the path-injection fix to maximize evaluator portability without requiring heavy packaging setups.
+
+## Phase S1 Part A — Source Contracts
+- **AI Contribution**: Updated schema.py to establish explicit and distinct source contracts (ORIGINAL_SCHEMA and SUPPLEMENTARY_SCHEMA) according to the frozen requirements. Created focused tests in 	est_schema.py to verify both contracts independently.
+- **Evidence Inspected**: Verified the structure of data/raw/case-export-2023-2025.csv, data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv, the original ingest.py, and the locked architecture rules.
+- **Tests Executed**: Ran the full test suite via pytest. Verified 71/71 tests passing (67 original tests + 4 new schema tests). Re-verified raw data SHA-256 integrity.
+- **Pending**: Canonical mapping, identity matching, reconciliation, and integration into the reporting pipeline are explicitly reserved for later phases.
+- **Human Review**: Awaiting human review and approval of the S1 Part A schema definitions before continuing to Part B.
