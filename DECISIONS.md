@@ -1,6 +1,6 @@
 # Phase 0 Engineering Decisions
 
-## DEC-001 — Repository Structure
+## DEC-001 â€” Repository Structure
 ### Context
 The original extraction contained archive metadata (`__MACOSX`, `.DS_Store`) and mixed the data with instructions. A clean structure is needed for reproducible data analysis without committing unwanted OS artifacts.
 ### Options considered
@@ -15,7 +15,7 @@ Moving files changes their relative paths from the original zip. However, the in
 ### Consequences
 Clear separation of concerns. The raw dataset is securely stored in `data/raw/` and is marked as immutable.
 
-## DEC-002 — Treatment of Source Data
+## DEC-002 â€” Treatment of Source Data
 ### Context
 The CSV `case-export-2023-2025.csv` contains dirty data, including duplicate identities, inconsistent dates, impossible values, and an unusable category field.
 ### Options considered
@@ -30,7 +30,7 @@ Requires programmatic transformations which take more code to write compared to 
 ### Consequences
 The analysis will be repeatable, and a robust cleaning log can be programmatically generated.
 
-## DEC-003 — Architecture Selection for Phase 0
+## DEC-003 â€” Architecture Selection for Phase 0
 ### Context
 The prompt raised a question about whether persistent database infrastructure or frontend dashboards are needed.
 ### Options considered
@@ -47,7 +47,7 @@ Development can focus exclusively on data cleaning and answering the operational
 
 # Phase 1 Engineering Decisions
 
-## DEC-004 — Schema Validation Strategy
+## DEC-004 â€” Schema Validation Strategy
 ### Context
 Before starting data cleaning, the pipeline needs to safely ingest the raw source and validate it matches our structural expectations.
 ### Options considered
@@ -62,7 +62,7 @@ Requires explicit casting later in the cleaning phase.
 ### Consequences
 The baseline profile correctly identifies the exact messy representations in the raw file without destroying evidence.
 
-## DEC-005 — Baseline Profiling Separation
+## DEC-005 â€” Baseline Profiling Separation
 ### Context
 We need to profile the data to find issues.
 ### Options considered
@@ -77,7 +77,7 @@ Raw profiling logic must handle dirty data gracefully without crashing.
 ### Consequences
 We have generated a machine-verifiable `outputs/baseline_profile.json` and issue register that confirms duplicates, missing values, and date format variations exist in the source data.
 
-## DEC-006 — Raw Data Preservation and Missing Values
+## DEC-006 â€” Raw Data Preservation and Missing Values
 ### Context
 During Phase 1 profiling, pandas automatically parses empty fields or strings like `NA` as `NaN`.
 ### Options considered
@@ -92,7 +92,7 @@ Empty string checks (`== ""`) must be explicitly written instead of generic `.is
 ### Consequences
 The profiling logic now computes missing counts explicitly from `""`, keeping the ingestion layer purely representational.
 
-## DEC-007 — Data Quality Contract and Anomaly Taxonomy
+## DEC-007 â€” Data Quality Contract and Anomaly Taxonomy
 ### Context
 Phase 2 requires identifying dirty data without overwriting the raw baseline.
 ### Options considered
@@ -107,7 +107,7 @@ Requires an intermediate storage/reporting layer for anomalies before the final 
 ### Consequences
 The system produces a deterministic, verifiable log of anomalies (`outputs/phase2_anomaly_report.csv`) that serves as the factual basis for Phase 3 cleaning decisions.
 
-## DEC-008 — Refining the Data Quality Contract
+## DEC-008 â€” Refining the Data Quality Contract
 ### Context
 The initial Phase 2 rules were too aggressive, assuming frequency equated to canonical truth and that similar strings proved identity. The dataset's true nature required more conservative definitions.
 ### Options considered
@@ -124,7 +124,7 @@ Detecting a similar string is an observation; merging them is a decision. The an
 ### Consequences
 The detector produces a richer, safer set of candidate variants without destroying the nuanced distinction between exact matches and probable matches. False positives are heavily reduced.
 
-## DEC-009 — Deterministic Explicit Date Parsing
+## DEC-009 â€” Deterministic Explicit Date Parsing
 ### Context
 The previous classification of `DATE_FORMAT_VARIATION` fell back on `pandas.to_datetime` (flexible inference). This allowed undocumented inference rules (e.g. implicitly assuming a locale like month-first) to silently interpret ambiguous dates, producing a pandas warning during tests.
 ### Options considered
@@ -141,7 +141,7 @@ A data-quality pipeline cannot confidently assert anomaly classifications based 
 ### Consequences
 Testing produces no pandas warnings. Unambiguous numeric and explicit text formats are accurately mapped without locale guesswork.
 
-## DEC-010 — Remediation Policy and Disposition Model
+## DEC-010 â€” Remediation Policy and Disposition Model
 ### Context
 Phase 3 requires an auditable remediation layer that prepares data for analysis without silently dropping or inventing information.
 ### Options considered
@@ -153,14 +153,14 @@ Adopt the evidence-driven disposition model:
 - **Identities**: Exact identical duplicates are collapsed (`AUTO_REPAIR`). Conflicting data or candidate variants are retained without merging.
 - **Categories**: Only formatting-only variants (whitespace padding/casing differences, e.g., `Standard ` -> `Standard`) are auto-repaired. Semantic mappings (e.g., `Standard Case`, `Std.`) are strictly retained without inference, as candidate similarity does not prove semantic equivalence.
 - **Missingness**: Left empty and unresolved rather than imputed. Expected missing values (e.g. closure date for Open cases) are explicitly retained.
-- **Audit Logging**: The audit log (`cleaning_audit.csv`) focuses exclusively on material remediation events—actual transformations, analytic exclusions, exact duplicate drops, and explicitly unresolved issues. Canonical, unchanged values do not generate noise in the audit log.
+- **Audit Logging**: The audit log (`cleaning_audit.csv`) focuses exclusively on material remediation eventsâ€”actual transformations, analytic exclusions, exact duplicate drops, and explicitly unresolved issues. Canonical, unchanged values do not generate noise in the audit log.
 - **Record-Level Status**: A precedence-based disposition (`EXCLUDE_FROM_ANALYSIS` -> `UNRESOLVED` -> `RETAIN_WITH_FLAG` -> `AUTO_REPAIR` -> `CLEAN`) is applied at the unique record level in `record_quality.csv` to distinguish action-level operations from final record state.
 ### Reasoning
 A blanket clean drops nuance and destroys provenance. By evaluating eligibility per-record-per-analysis, we can safely compute case counts from records that have invalid dates, instead of entirely removing the record from the pipeline. Furthermore, formatting-only normalization is safe, but semantic normalization without explicit organizer mapping introduces false equivalence.
 ### Consequences
 Generates a cleaned dataset that retains >99% of cases (dropping only 28 true duplicates), accompanied by a meticulous `cleaning_audit.csv` limited strictly to material interventions, and a `record_quality.csv` eligibility matrix for downstream analysis.
 
-## DEC-011 — Phase 4 Analytical Framework & Denominator Discipline
+## DEC-011 â€” Phase 4 Analytical Framework & Denominator Discipline
 ### Context
 Phase 4 demands robust, evidence-based answers to the operational questions, avoiding fabricated denominators, censorship biases, or unwarranted causal claims.
 ### Options considered
@@ -233,7 +233,7 @@ This is the minimal, least-intrusive fix. It avoids forcing the evaluator to con
 ### Consequences
 The pipeline runs completely isolated out-of-the-box on any OS without ModuleNotFoundError for internal dirty_data imports.
 
-## DEC-015 — Surprise Source Contracts (S1 Part A)
+## DEC-015 â€” Surprise Source Contracts (S1 Part A)
 ### Context
 The Surprise Challenge introduced a second source dataset with a different schema and missing fields. We need to validate and ingest this data without contaminating the frozen, verified logic of the original pipeline.
 ### Options considered
@@ -246,7 +246,7 @@ Source-specific contracts prevent schema drift from contaminating the original p
 ### Consequences
 We can now ingest and validate both sources deterministically according to their own rules, which enables a safe canonical transformation and field-level reconciliation in subsequent phases.
 
-## DEC-016 � Canonical Data Model (S1 Part B)
+## DEC-016 — Canonical Data Model (S1 Part B)
 ### Context
 The original and supplementary datasets have fundamentally different schemas (e.g. `case_id` vs `reference`, missing `status` and `client_ref` in supplementary). We need a unified structure to enable automated field-level comparison and reconciliation.
 ### Options considered
@@ -260,7 +260,7 @@ A dedicated canonical model separates the "vocabulary" problem from the "reconci
 The system now has a defined target structure for the future Source Adapters (Phase S2) to map into, ensuring both datasets can be compared apples-to-apples in Phase S6.
 
 
-## DEC-017 � Original Source Canonical Adapter (S2 Part A)
+## DEC-017 — Original Source Canonical Adapter (S2 Part A)
 ### Context
 We must translate the Original dataset into the Canonical Schema defined in S1 Part B without destroying the frozen analytical baseline or prematurely mixing datasets.
 ### Options considered
@@ -274,7 +274,7 @@ Keeping the adapter isolated ensures 100% backward compatibility with the existi
 The original data can now be transformed into canonical records on demand for later S6 reconciliation without polluting the existing Phase 0-7 operational pipeline.
 
 
-## DEC-018 � Supplementary Source Canonical Adapter (S2 Part B)
+## DEC-018 — Supplementary Source Canonical Adapter (S2 Part B)
 ### Context
 The Supplementary Source must be mapped into the CANONICAL_SCHEMA to enable later reconciliation. It lacks several fields (status, contact_count, client_ref) and uses a different structural vocabulary (e.g., reference vs case_id).
 ### Options considered
@@ -289,7 +289,7 @@ Separation of concerns is maintained. The supplementary adapter performs determi
 Both sources can now be safely translated into a shared vocabulary (Canonical Schema). Identity matching, field comparison, and reconciliation (S3+) can now compare equivalent structures without dealing with structural noise. Deduplication and conflict resolution remain intentionally deferred.
 
 
-## DEC-019 � Identity Matching Logic (S3)
+## DEC-019 — Identity Matching Logic (S3)
 ### Context
 The canonical Original and Supplementary datasets must be associated based on their identity without resolving conflicts, overriding values, or artificially deduplicating data.
 ### Options considered
@@ -304,7 +304,7 @@ Concatenation avoids silent merges or drops. It enforces that identity matching 
 The resulting \ligned_df\ has exactly \len(orig) + len(supp)\ rows (19,280). No data is lost, and S4/S5 field comparisons can process conflicts sequentially by iterating over \groupby('case_id')\.
 
 
-## DEC-020 � Phase S3 Correction: Explicit Identity Index
+## DEC-020 — Phase S3 Correction: Explicit Identity Index
 ### Context
 The initial S3 implementation successfully created a safe, non-destructive identity ledger by concatenating physical records grouped by \case_id\. However, a human review identified that this ledger alone did not fulfill the requirement to explicitly expose the identity match relationship. Downstream modules would have been forced to re-derive match status and cardinality from the physical ledger, violating separation of concerns.
 ### Decision
@@ -312,9 +312,8 @@ S3 now produces two complementary artifacts: \ligned_df\ (the physical identity
 ### Reasoning
 - **Why the ledger alone was insufficient**: The ledger preserves raw data but hides relationship semantics. An explicit identity index explicitly answers 'Which records represent the same case?'
 - **Why identity classification belongs in S3**: Identity Matching is S3's exact domain boundary. Deferring cardinality calculation to S4 would incorrectly entangle identity derivation with field-level conflict detection.
-- **Why cardinality is descriptive only & no deduplication occurs**: S3's job is purely associational. Deduplicating records (e.g., resolving a \MANY_TO_ONE\ identity) forces a source precedence decision, which violates the strict rule that S3 establishes equivalence without deciding which source is correct.
+- **Why cardinality is descriptive only & no deduplication occurs**: S3's job is purely associational. Deduplicating records (e.g., resolving a `MANY_TO_ONE` identity) forces a source precedence decision, which violates the strict rule that S3 establishes equivalence without deciding which source is correct.
 - **Why no source precedence is encoded**: The Identity Index describes mathematical multiplicity (e.g., 2 Original records, 1 Supplementary record) neutrally. It does not dictate which record 'wins'.
-- **Why the physical ledger remains unchanged**: The \pd.concat\ approach perfectly preserves the physical 19,280 rows and their provenance (\source_system\, \source_row_index\) for future reconciliation phases.
+- **Why the physical ledger remains unchanged**: The `pd.concat` approach perfectly preserves the physical 19,280 rows and their provenance (`source_system`, `source_row_index`) for future reconciliation phases.
 ### Consequences
-The original 19,280-row \ligned_df\ is fully preserved. The new \identity_index_df\ allows subsequent phases to instantly route cases (e.g., \MANY_TO_ONE\ requires internal deduplication before cross-source comparison) based on deterministic, pre-calculated cardinality rules.
-
+The original 19,280-row `aligned_df` is fully preserved. The new `identity_index_df` allows subsequent phases to instantly route cases based on deterministic, pre-calculated cardinality rules. MANY_TO_ONE identifies that multiple physical records exist on one source side. It does not itself authorize deduplication. Later comparison/reconciliation phases must explicitly determine how those records are handled while preserving the audit trail and avoiding silent record loss.
