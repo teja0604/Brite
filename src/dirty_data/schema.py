@@ -22,9 +22,103 @@ SUPPLEMENTARY_SCHEMA = {
     "extract_date": {"semantic": "Date of the extract (2026-01-14).", "type": "string", "nullable": False, "role": "metadata"}
 }
 
+CANONICAL_SCHEMA = {
+    "case_id": {
+        "semantic": "The unified case identifier.",
+        "type": "string",
+        "nullable": False,
+        "derived": False,
+        "source_mapping": ["case_id", "reference"]
+    },
+    "client_ref": {
+        "semantic": "Client name or reference. May be unavailable if source lacks it.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "unavailable_allowed": True,
+        "source_mapping": ["client_ref"]
+    },
+    "district": {
+        "semantic": "District office.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["district", "office"]
+    },
+    "intake_date": {
+        "semantic": "Date case was opened.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["intake_date", "opened"]
+    },
+    "closure_date": {
+        "semantic": "Date case was closed. Empty means open.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["closure_date", "closed"]
+    },
+    "status": {
+        "semantic": "Open or Closed. Derived conceptually from closure_date presence.",
+        "type": "string",
+        "nullable": True,
+        "derived": True,
+        "unavailable_allowed": True,
+        "source_mapping": ["status"]
+    },
+    "category": {
+        "semantic": "The case type.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["category", "case_type"]
+    },
+    "priority": {
+        "semantic": "Priority band.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["priority", "band"]
+    },
+    "caseworker_id": {
+        "semantic": "Assigned caseworker.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "source_mapping": ["caseworker_id", "worker"]
+    },
+    "contact_count": {
+        "semantic": "Number of contacts.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "unavailable_allowed": True,
+        "source_mapping": ["contact_count"]
+    },
+    "extract_date": {
+        "semantic": "Date the source was extracted. Unknown if not supplied.",
+        "type": "string",
+        "nullable": True,
+        "derived": False,
+        "unavailable_allowed": True,
+        "role": "metadata",
+        "source_mapping": ["extract_date"]
+    },
+    "source_system": {
+        "semantic": "The origin of this canonical record (e.g. Original or Supplementary).",
+        "type": "string",
+        "nullable": False,
+        "derived": True,
+        "role": "metadata"
+    }
+}
+
 def get_expected_columns(schema_type="original"):
     if schema_type == "original":
         return list(ORIGINAL_SCHEMA.keys())
     elif schema_type == "supplementary":
         return list(SUPPLEMENTARY_SCHEMA.keys())
+    elif schema_type == "canonical":
+        return list(CANONICAL_SCHEMA.keys())
     raise ValueError(f"Unknown schema type: {schema_type}")

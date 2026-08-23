@@ -245,3 +245,17 @@ Keep the original contract exactly as it is (`ORIGINAL_SCHEMA`) and define a sep
 Source-specific contracts prevent schema drift from contaminating the original pipeline. It forces us to handle the structural differences explicitly in a later canonical mapping phase rather than silently guessing or inventing mappings at the ingestion layer.
 ### Consequences
 We can now ingest and validate both sources deterministically according to their own rules, which enables a safe canonical transformation and field-level reconciliation in subsequent phases.
+
+## DEC-016 — Canonical Data Model (S1 Part B)
+### Context
+The original and supplementary datasets have fundamentally different schemas (e.g. `case_id` vs `reference`, missing `status` and `client_ref` in supplementary). We need a unified structure to enable automated field-level comparison and reconciliation.
+### Options considered
+1. Force the supplementary dataset into the original schema structure during ingestion.
+2. Create a third, distinct Canonical Schema that explicitly models the shared business concepts without dictating source precedence.
+### Decision
+Adopt a distinct Canonical Schema (`CANONICAL_SCHEMA`). We define semantic mappings for each field. Crucially, `status` is modeled as a conceptually derived field based on the presence of `closure_date`. Fields absent in one source (like `contact_count`) are allowed to be explicitly marked unavailable rather than imputed as zero.
+### Reasoning
+A dedicated canonical model separates the "vocabulary" problem from the "reconciliation" problem. By retaining distinction between a missing source field and an empty field, we prevent silent data loss. Avoiding precedence rules at this layer ensures the model remains neutral for later conflict resolution.
+### Consequences
+The system now has a defined target structure for the future Source Adapters (Phase S2) to map into, ensuring both datasets can be compared apples-to-apples in Phase S6.
+

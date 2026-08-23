@@ -418,3 +418,29 @@ The two sources have different structures. Weakening the original contract would
 
 **Status**
 S1 Part A completed and approved for the next phase.
+
+### Phase S1 Part B — Canonical Model
+
+**AI Contribution**
+- Analyzed the semantic overlap between the original and supplementary sources.
+- Designed the \CANONICAL_SCHEMA\ dict in \schema.py\ mapping business concepts (e.g., \district\ and \office\ to \canonical.district\).
+- Explicitly designated \status\ as a derived field, \source_system\ as essential provenance metadata, and enabled \unavailable_allowed\ for fields like \contact_count\ to prevent fabricating zeros.
+- Wrote \	est_canonical_schema_concepts\ and \	est_canonical_schema_properties\ to enforce that provenance, derived semantics, and missingness rules are structurally supported without dictating source precedence.
+
+**My Contribution & Verification**
+- Reviewed the canonical field definitions against the architecture requirements.
+- Checked that missing source fields were not coerced to zero or default values in the schema.
+- Confirmed that \status\ semantics were represented as conceptually derived.
+- Reviewed the Git diff to ensure no adapters, reconciliation, or analysis logic were introduced.
+- Checked the regression test results to guarantee original baseline behavior remained untouched.
+- Decided the structural canonical model accurately fulfills the business concepts required for future Phase S6 reconciliation.
+
+**Verification Evidence**
+- All previous tests plus new tests passed: 73/73.
+- Original raw CSV SHA-256 verified unchanged (f65bec45...).
+- Commit: 81a384b
+- Push completed successfully.
+
+**Decision**
+Establish a strict, distinct Canonical Schema that neutralizes vocabulary differences between the sources while preserving explicit null/unavailable states and supporting metadata tracking.
+
