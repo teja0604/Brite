@@ -522,3 +522,22 @@ Adopt the isolated supplementary adapter function, establishing a purely structu
 **Decision**
 Adopt the concatenated identity ledger approach. Identity mapping is purely an association phase establishing multi-source groupings for future downstream comparison, fully maintaining the required non-destructive boundary.
 
+
+### Phase S3 Correction — Explicit Identity Index
+
+**AI Contribution**
+- Modified \match_identities\ to generate \identity_index_df\, calculating the exact physical row count per unique \case_id\ across both sources.
+- Implemented \_compute_match_status\ to assign \MATCHED\, \ORIGINAL_ONLY\, or \SUPPLEMENTARY_ONLY\.
+- Implemented \_compute_cardinality\ to establish neutral relationship multiplicity (\ONE_TO_ONE\, \ONE_TO_MANY\, \MANY_TO_ONE\, \MANY_TO_MANY\, \ORIGINAL_ONLY\, \SUPPLEMENTARY_ONLY\) dynamically.
+- Retained the untouched \ligned_df\ to preserve 100% of the physical records and provenances without deduplication.
+- Wrote comprehensive regression tests verifying every cardinality type and explicitly proving physical duplicates in Original (like the 184 identified cases) are preserved in the ledger while properly tracked as \MANY_TO_ONE\ or \MANY_TO_MANY\ in the index.
+
+**My Contribution & Verification**
+- I reviewed the S3 read-only audit and identified that aggregate overlap metrics were insufficient for an auditable per-identity relationship artifact.
+- I decided that S3 must expose both the physical identity ledger and an explicit identity index.
+- I specifically required cardinality to describe multiplicity without triggering deduplication.
+- I reviewed the proposed classification rules for MATCHED, ORIGINAL_ONLY, and SUPPLEMENTARY_ONLY.
+- I checked that no source precedence or reconciliation logic was introduced.
+- I reviewed the duplicate-identity test cases and confirmed that physical rows remain preserved.
+- I reviewed the regression test results before allowing the phase to close.
+

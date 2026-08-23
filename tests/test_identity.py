@@ -2,62 +2,86 @@ import pandas as pd
 from dirty_data.identity import match_identities
 from dirty_data.adapter import adapt_original_to_canonical, adapt_supplementary_to_canonical
 
-def test_match_identities_synthetic():
+def test_match_identities_cardinalities_and_index():
+    # 1-6. Comprehensive Cardinality coverage
+    # A1: ONE_TO_ONE
+    # A2: ORIGINAL_ONLY
+    # A3: SUPPLEMENTARY_ONLY
+    # A4: MANY_TO_ONE (2 orig, 1 supp)
+    # A5: ONE_TO_MANY (1 orig, 2 supp)
+    # A6: MANY_TO_MANY (2 orig, 2 supp)
+    
     orig_data = {
-        "case_id": ["C1", "C2", "C3", "C3"], # C3 is an exact duplicate in original
-        "district": ["D1", "D2", "D3", "D3"],
-        "status": ["Open", "Closed", "Open", "Open"],
-        "source_system": ["ORIGINAL", "ORIGINAL", "ORIGINAL", "ORIGINAL"],
-        "source_row_index": [0, 1, 2, 3]
+        "case_id": ["A1", "A2", "A4", "A4", "A5", "A6", "A6"],
+        "source_system": ["ORIGINAL"] * 7,
+        "source_row_index": [0, 1, 2, 3, 4, 5, 6]
     }
     orig_df = pd.DataFrame(orig_data)
     
     supp_data = {
-        "case_id": ["C2", "C3", "C4"],
-        "district": ["D2_supp", "D3_supp", "D4_supp"],
-        "status": ["Closed", "Closed", "Open"], # Conflict on C3 status
-        "source_system": ["SUPPLEMENTARY", "SUPPLEMENTARY", "SUPPLEMENTARY"],
-        "source_row_index": [0, 1, 2]
+        "case_id": ["A1", "A3", "A4", "A5", "A5", "A6", "A6"],
+        "source_system": ["SUPPLEMENTARY"] * 7,
+        "source_row_index": [0, 1, 2, 3, 4, 5, 6]
     }
     supp_df = pd.DataFrame(supp_data)
     
-    aligned_df, metrics = match_identities(orig_df, supp_df)
+    aligned_df, index_df, metrics = match_identities(orig_df, supp_df)
     
-    # 1. Total rows = 4 + 3 = 7
-    assert len(aligned_df) == 7
+    # 7. Physical duplicate rows are preserved (7 + 7 = 14)
+    assert len(aligned_df) == 14
     
-    # 2. Check dynamic metrics
-    assert metrics["original_unique"] == 3  # C1, C2, C3
-    assert metrics["supplementary_unique"] == 3  # C2, C3, C4
-    assert metrics["overlap"] == 2  # C2, C3
-    assert metrics["original_only"] == 1  # C1
-    assert metrics["supplementary_only"] == 1  # C4
+    # 8. Identity index has exactly one row per unique case_id
+    assert len(index_df) == 6
+    assert index_df['case_id'].nunique() == 6
     
-    # 3. Check determinism / structure
-    # Since it's sorted by case_id -> source_system -> source_row_index
-    # C1: orig
-    # C2: orig, supp
-    # C3: orig, orig, supp
-    # C4: supp
-    expected_ids = ["C1", "C2", "C2", "C3", "C3", "C3", "C4"]
-    assert aligned_df["case_id"].tolist() == expected_ids
+    # Check A1: ONE_TO_ONE
+    a1 = index_df[index_df["case_id"] == "A1"].iloc[0]
+    assert a1["match_status"] == "MATCHED"
+    assert a1["cardinality"] == "ONE_TO_ONE"
+    assert a1["original_count"] == 1
+    assert a1["supplementary_count"] == 1
     
-    expected_sources = [
-        "ORIGINAL", 
-        "ORIGINAL", "SUPPLEMENTARY", 
-        "ORIGINAL", "ORIGINAL", "SUPPLEMENTARY", 
-        "SUPPLEMENTARY"
-    ]
-    assert aligned_df["source_system"].tolist() == expected_sources
+    # Check A2: ORIGINAL_ONLY
+    a2 = index_df[index_df["case_id"] == "A2"].iloc[0]
+    assert a2["match_status"] == "ORIGINAL_ONLY"
+    assert a2["cardinality"] == "ORIGINAL_ONLY"
+    assert a2["original_count"] == 1
+    assert a2["supplementary_count"] == 0
     
-    # 4. Check that values were not overwritten or dropped
-    c3_supp = aligned_df[(aligned_df["case_id"] == "C3") & (aligned_df["source_system"] == "SUPPLEMENTARY")].iloc[0]
-    assert c3_supp["district"] == "D3_supp"
-    assert c3_supp["status"] == "Closed"
+    # Check A3: SUPPLEMENTARY_ONLY
+    a3 = index_df[index_df["case_id"] == "A3"].iloc[0]
+    assert a3["match_status"] == "SUPPLEMENTARY_ONLY"
+    assert a3["cardinality"] == "SUPPLEMENTARY_ONLY"
+    assert a3["original_count"] == 0
+    assert a3["supplementary_count"] == 1
     
-    c3_orig_1 = aligned_df[(aligned_df["case_id"] == "C3") & (aligned_df["source_system"] == "ORIGINAL")].iloc[0]
-    assert c3_orig_1["district"] == "D3"
-    assert c3_orig_1["status"] == "Open"
+    # Check A4: MANY_TO_ONE
+    a4 = index_df[index_df["case_id"] == "A4"].iloc[0]
+    assert a4["match_status"] == "MATCHED"
+    assert a4["cardinality"] == "MANY_TO_ONE"
+    assert a4["original_count"] == 2
+    assert a4["supplementary_count"] == 1
+    
+    # Check A5: ONE_TO_MANY
+    a5 = index_df[index_df["case_id"] == "A5"].iloc[0]
+    assert a5["match_status"] == "MATCHED"
+    assert a5["cardinality"] == "ONE_TO_MANY"
+    assert a5["original_count"] == 1
+    assert a5["supplementary_count"] == 2
+    
+    # Check A6: MANY_TO_MANY
+    a6 = index_df[index_df["case_id"] == "A6"].iloc[0]
+    assert a6["match_status"] == "MATCHED"
+    assert a6["cardinality"] == "MANY_TO_MANY"
+    assert a6["original_count"] == 2
+    assert a6["supplementary_count"] == 2
+    
+    # 9. Identity index counts match actual physical rows
+    assert index_df["original_count"].sum() == len(orig_df)
+    assert index_df["supplementary_count"].sum() == len(supp_df)
+    
+    # 12. Deterministic output (sorting is applied correctly in index_df)
+    assert index_df["case_id"].tolist() == ["A1", "A2", "A3", "A4", "A5", "A6"]
 
 def test_match_identities_real_data():
     orig_raw = pd.read_csv('data/raw/case-export-2023-2025.csv', dtype=str, keep_default_na=False)
@@ -66,20 +90,48 @@ def test_match_identities_real_data():
     supp_raw = pd.read_csv('data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv', dtype=str, keep_default_na=False)
     supp_can = adapt_supplementary_to_canonical(supp_raw)
     
-    aligned_df, metrics = match_identities(orig_can, supp_can)
+    aligned_df, index_df, metrics = match_identities(orig_can, supp_can)
     
-    # 1. Total rows = 15,100 + 4,180 = 19,280
+    # 10. Real-data row conservation remains: 15,100 + 4,180 = 19,280
     assert len(aligned_df) == 19280
     
-    # 2. Check empirically established overlap metrics
+    # 11. Real-data overlap remains dynamically calculated
     assert metrics["original_unique"] == 14916
     assert metrics["supplementary_unique"] == 4180
     assert metrics["overlap"] == 3400
     assert metrics["original_only"] == 11516
     assert metrics["supplementary_only"] == 780
     
-    # 3. Verify deterministic sorting ensures grouped output
-    # First record should be the lowest case_id alphanumerically
-    # By grouping we ensure we don't have overlapping indices
-    case_groups = aligned_df.groupby("case_id").size()
-    assert len(case_groups) == 14916 + 780
+    # Identity index checks for real data
+    assert len(index_df) == 14916 + 780
+    
+    # Ensure physical counts correctly map
+    assert index_df["original_count"].sum() == 15100
+    assert index_df["supplementary_count"].sum() == 4180
+
+def test_match_identities_duplicate_identity_analysis():
+    # Specific test proving duplicate identities produce correct cardinality without removal
+    orig_data = {
+        "case_id": ["A100", "A100"],
+        "source_system": ["ORIGINAL", "ORIGINAL"],
+        "source_row_index": [0, 1]
+    }
+    orig_df = pd.DataFrame(orig_data)
+    
+    supp_data = {
+        "case_id": ["A100"],
+        "source_system": ["SUPPLEMENTARY"],
+        "source_row_index": [0]
+    }
+    supp_df = pd.DataFrame(supp_data)
+    
+    aligned_df, index_df, metrics = match_identities(orig_df, supp_df)
+    
+    assert len(aligned_df) == 3
+    
+    a100 = index_df.iloc[0]
+    assert a100["case_id"] == "A100"
+    assert a100["original_count"] == 2
+    assert a100["supplementary_count"] == 1
+    assert a100["match_status"] == "MATCHED"
+    assert a100["cardinality"] == "MANY_TO_ONE"

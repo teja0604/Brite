@@ -303,3 +303,18 @@ Concatenation avoids silent merges or drops. It enforces that identity matching 
 ### Consequences
 The resulting \ligned_df\ has exactly \len(orig) + len(supp)\ rows (19,280). No data is lost, and S4/S5 field comparisons can process conflicts sequentially by iterating over \groupby('case_id')\.
 
+
+## DEC-020 — Phase S3 Correction: Explicit Identity Index
+### Context
+The initial S3 implementation successfully created a safe, non-destructive identity ledger by concatenating physical records grouped by \case_id\. However, a human review identified that this ledger alone did not fulfill the requirement to explicitly expose the identity match relationship. Downstream modules would have been forced to re-derive match status and cardinality from the physical ledger, violating separation of concerns.
+### Decision
+S3 now produces two complementary artifacts: \ligned_df\ (the physical identity ledger) and \identity_index_df\ (the identity match result). The index contains exactly one row per unique \case_id\, describing \original_count\, \supplementary_count\, \match_status\, and \cardinality\.
+### Reasoning
+- **Why the ledger alone was insufficient**: The ledger preserves raw data but hides relationship semantics. An explicit identity index explicitly answers 'Which records represent the same case?'
+- **Why identity classification belongs in S3**: Identity Matching is S3's exact domain boundary. Deferring cardinality calculation to S4 would incorrectly entangle identity derivation with field-level conflict detection.
+- **Why cardinality is descriptive only & no deduplication occurs**: S3's job is purely associational. Deduplicating records (e.g., resolving a \MANY_TO_ONE\ identity) forces a source precedence decision, which violates the strict rule that S3 establishes equivalence without deciding which source is correct.
+- **Why no source precedence is encoded**: The Identity Index describes mathematical multiplicity (e.g., 2 Original records, 1 Supplementary record) neutrally. It does not dictate which record 'wins'.
+- **Why the physical ledger remains unchanged**: The \pd.concat\ approach perfectly preserves the physical 19,280 rows and their provenance (\source_system\, \source_row_index\) for future reconciliation phases.
+### Consequences
+The original 19,280-row \ligned_df\ is fully preserved. The new \identity_index_df\ allows subsequent phases to instantly route cases (e.g., \MANY_TO_ONE\ requires internal deduplication before cross-source comparison) based on deterministic, pre-calculated cardinality rules.
+
