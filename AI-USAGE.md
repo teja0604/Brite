@@ -577,4 +577,5 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 - I explicitly reviewed and approved the **representation-equivalent handling** strategy (retaining Original string representations).
 - I explicitly reviewed and approved the **unavailable-field handling** strategy (retaining the side that schema-defines the field).
 - I explicitly reviewed and approved the **MANY_TO_ONE preservation strategy** (producing one reconciled output row per Original physical row without implicit deduplication, and leaving ONE_TO_MANY/MANY_TO_MANY explicitly unresolved).
+- I verified the architectural requirement for **SUPPLEMENTARY_ONLY preservation** to retain all physical evidence and prevent silent record loss.
 - I verified raw hashes were untouched.

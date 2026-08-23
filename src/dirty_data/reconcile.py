@@ -6,7 +6,7 @@ def reconcile_dataset(
     aligned_df: pd.DataFrame, 
     identity_index_df: pd.DataFrame, 
     comparison_df: pd.DataFrame
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Applies the Phase S5 reconciliation policy to the S4 comparison evidence.
     Returns (reconciled_df, reconciliation_audit_df).
@@ -22,6 +22,7 @@ def reconcile_dataset(
     """
     reconciled_records = []
     audit_logs = []
+    unresolved_records = []
     
     # We only process ONE_TO_ONE and ORIGINAL_ONLY cases for this commit logic.
     # We will exclude MULTI_RECORD and SUPPLEMENTARY_ONLY for now (or pass them through as unresolved later).
@@ -41,6 +42,15 @@ def reconcile_dataset(
         # ---------------------------------------------------------
         # ---------------------------------------------------------
         if cardinality in ["ONE_TO_MANY", "MANY_TO_MANY"]:
+            case_data = aligned_grouped.get_group(case_id)
+            for _, row in case_data.iterrows():
+                unresolved_records.append({
+                    "case_id": case_id,
+                    "source_system": row["source_system"],
+                    "source_row_index": row["source_row_index"],
+                    "reason": f"Identity requires explicit multi-record handling ({cardinality}).",
+                    "rule_applied": "RULE-S5-COMPLEX-MULTI"
+                })
             audit_logs.append({
                 "case_id": case_id,
                 "field": "ALL",
@@ -59,29 +69,55 @@ def reconcile_dataset(
         if match_status == "ORIGINAL_ONLY":
             # Pass through the original record exactly as-is
             case_data = aligned_grouped.get_group(case_id)
-            orig_row = case_data[case_data["source_system"] == "ORIGINAL"].iloc[0].to_dict()
-            orig_idx = orig_row.get("source_row_index", "")
-            
-            reconciled_rec = {col: orig_row.get(col, "") for col in canonical_cols}
-            reconciled_rec["reconciliation_status"] = "ORIGINAL_ONLY"
-            reconciled_records.append(reconciled_rec)
-            
-            audit_logs.append({
-                "case_id": case_id,
-                "field": "ALL",
-                "original_source_row": orig_idx,
-                "supplementary_source_row": "",
-                "original_value": "PRESENT",
-                "supplementary_value": "UNAVAILABLE",
-                "comparison_result": "NOT_COMPARABLE",
-                "reconciliation_decision": "PASS_THROUGH",
-                "selected_value": "ORIGINAL",
-                "reason": "Identity exists only in Original source",
-                "rule_applied": "RULE-S5-ORIGINAL-ONLY"
-            })
+            orig_rows = case_data[case_data["source_system"] == "ORIGINAL"]
+            for _, orig_row_s in orig_rows.iterrows():
+                orig_row = orig_row_s.to_dict()
+                orig_idx = orig_row.get("source_row_index", "")
+                
+                reconciled_rec = {col: orig_row.get(col, "") for col in canonical_cols}
+                reconciled_rec["reconciliation_status"] = "ORIGINAL_ONLY"
+                reconciled_records.append(reconciled_rec)
+                
+                audit_logs.append({
+                    "case_id": case_id,
+                    "field": "ALL",
+                    "original_source_row": orig_idx,
+                    "supplementary_source_row": "",
+                    "original_value": "PRESENT",
+                    "supplementary_value": "UNAVAILABLE",
+                    "comparison_result": "NOT_COMPARABLE",
+                    "reconciliation_decision": "PASS_THROUGH",
+                    "selected_value": "ORIGINAL",
+                    "reason": "Identity exists only in Original source",
+                    "rule_applied": "RULE-S5-ORIGINAL-ONLY"
+                })
             continue
             
         if match_status == "SUPPLEMENTARY_ONLY":
+            # Pass through the supplementary record exactly as-is
+            case_data = aligned_grouped.get_group(case_id)
+            supp_rows = case_data[case_data["source_system"] == "SUPPLEMENTARY"]
+            for _, supp_row_s in supp_rows.iterrows():
+                supp_row = supp_row_s.to_dict()
+                supp_idx = supp_row.get("source_row_index", "")
+                
+                reconciled_rec = {col: supp_row.get(col, "") for col in canonical_cols}
+                reconciled_rec["reconciliation_status"] = "SUPPLEMENTARY_ONLY"
+                reconciled_records.append(reconciled_rec)
+                
+                audit_logs.append({
+                    "case_id": case_id,
+                    "field": "ALL",
+                    "original_source_row": "",
+                    "supplementary_source_row": supp_idx,
+                    "original_value": "UNAVAILABLE",
+                    "supplementary_value": "PRESENT",
+                    "comparison_result": "NOT_COMPARABLE",
+                    "reconciliation_decision": "PASS_THROUGH",
+                    "selected_value": "SUPPLEMENTARY",
+                    "reason": "Identity exists only in Supplementary source",
+                    "rule_applied": "RULE-S5-SUPPLEMENTARY-ONLY"
+                })
             continue
             
         # MATCHED logic (handles ONE_TO_ONE and MANY_TO_ONE via grouping)
@@ -213,4 +249,5 @@ def reconcile_dataset(
         recon_df = recon_df[cols]
         
     audit_df = pd.DataFrame(audit_logs)
-    return recon_df, audit_df
+    unresolved_df = pd.DataFrame(unresolved_records)
+    return recon_df, unresolved_df, audit_df

@@ -361,6 +361,7 @@ I explicitly reviewed and approved the following reconciliation rules:
 3. **Representation-equivalent handling**: Keep the Original string representation without silently normalizing the raw evidence.
 4. **Unavailable-field handling**: Use the value from the source that actually contains the field, without interpreting it as a missing value.
 5. **MANY_TO_ONE preservation strategy**: Produce exactly one reconciled output row per Original physical record. Pair each Original physical record with the single Supplementary record for that identity and apply field-level rules independently. `ONE_TO_MANY` and `MANY_TO_MANY` identities are strictly marked as requiring explicit multi-record handling (`UNRESOLVED_MULTI_RECORD`).
+6. **SUPPLEMENTARY_ONLY preservation**: Retain the Supplementary physical record completely and pass it through to the reconciled canonical representation. This is required by the architecture to preserve all populations and avoid silent record loss for net-new cases; it is not an invented business preference.
 
 ### Consequences
 The reconciled dataset deterministically resolves field-level conflicts. The 46 `MANY_TO_ONE` identities preserve Original physical-row cardinality, but their analytical values may change according to the explicitly approved field-level reconciliation rules. No silent record loss occurs, and the audit trail captures all decisions with explicit provenance tracking.

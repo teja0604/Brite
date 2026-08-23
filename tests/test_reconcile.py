@@ -25,7 +25,7 @@ def test_1_exact_match():
         "original_presence": "PRESENT", "supplementary_presence": "PRESENT",
         "comparison_result": "EXACT_MATCH"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert recon_df.iloc[0]["category"] == "A"
     assert "RULE-S5-MATCH" in audit_df["rule_applied"].values
 
@@ -37,7 +37,7 @@ def test_2_representation_equivalent():
         "original_presence": "PRESENT", "supplementary_presence": "PRESENT",
         "comparison_result": "REPRESENTATION_EQUIVALENT"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert recon_df.iloc[0]["intake_date"] == "01/01/2026"  # Keep Original format
     assert "RULE-S5-REP-EQUIV" in audit_df["rule_applied"].values
 
@@ -49,7 +49,7 @@ def test_3_missing_one_side():
         "original_presence": "MISSING", "supplementary_presence": "PRESENT",
         "comparison_result": "MISSING_ONE_SIDE"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert recon_df.iloc[0]["priority"] == "High"
     assert "RULE-S5-IMPUTE" in audit_df["rule_applied"].values
 
@@ -61,7 +61,7 @@ def test_4_unavailable_one_side():
         "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
         "comparison_result": "UNAVAILABLE_ONE_SIDE"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert recon_df.iloc[0]["contact_count"] == "3"
     assert "RULE-S5-UNAVAILABLE" in audit_df["rule_applied"].values
 
@@ -91,7 +91,7 @@ def test_5_to_13_conflict_precedence():
         })
         
     comp_df = pd.DataFrame(comp_rows)
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     
     for f, expected_winner in fields:
         expected_val = "S_VAL" if expected_winner == "SUPPLEMENTARY" else "O_VAL"
@@ -105,7 +105,7 @@ def test_14_extract_date_provenance():
         "original_presence": "PRESENT", "supplementary_presence": "PRESENT",
         "comparison_result": "EXACT_MATCH"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert recon_df.iloc[0]["extract_date"] == "" # Original has no extract date
     
     extract_audit = audit_df[audit_df["field"] == "extract_date"].iloc[0]
@@ -137,7 +137,7 @@ def test_15_16_many_to_one_preservation():
             "comparison_result": "CONFLICT"
         }
     ])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert len(recon_df) == 2 # Preserves both original rows
     
     # 17. Deterministic
@@ -154,7 +154,7 @@ def test_18_audit_provenance():
         "original_presence": "MISSING", "supplementary_presence": "PRESENT",
         "comparison_result": "MISSING_ONE_SIDE"
     }])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     
     audit_row = audit_df[audit_df["field"] == "priority"].iloc[0]
     assert audit_row["original_source_row"] == 99
@@ -163,7 +163,7 @@ def test_18_audit_provenance():
 def test_19_one_to_many_unresolved():
     aligned_df, idx_df = create_base_data(cardinality="ONE_TO_MANY")
     comp_df = pd.DataFrame(columns=["case_id", "original_source_row", "supplementary_source_row", "field_name", "original_value", "supplementary_value", "original_presence", "supplementary_presence", "comparison_result"]) # Doesn't matter, should be skipped
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert len(recon_df) == 0
     assert audit_df.iloc[0]["reconciliation_decision"] == "UNRESOLVED_MULTI_RECORD"
 
@@ -177,6 +177,21 @@ def test_20_no_silent_record_loss():
     })
     idx_df = pd.DataFrame({"case_id": ["C1"], "cardinality": ["ORIGINAL_ONLY"], "match_status": ["ORIGINAL_ONLY"]})
     comp_df = pd.DataFrame(columns=["case_id", "original_source_row", "supplementary_source_row", "field_name", "original_value", "supplementary_value", "original_presence", "supplementary_presence", "comparison_result"])
-    recon_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
     assert len(recon_df) == 1
     assert recon_df.iloc[0]["reconciliation_status"] == "ORIGINAL_ONLY"
+
+def test_21_supplementary_only_preservation():
+    aligned_df = pd.DataFrame({
+        "case_id": ["C2"],
+        "source_system": ["SUPPLEMENTARY"],
+        "source_row_index": [5],
+        "client_ref": [""],
+        "extract_date": ["2026-01-14"]
+    })
+    idx_df = pd.DataFrame({"case_id": ["C2"], "cardinality": ["SUPPLEMENTARY_ONLY"], "match_status": ["SUPPLEMENTARY_ONLY"]})
+    comp_df = pd.DataFrame(columns=["case_id", "original_source_row", "supplementary_source_row", "field_name", "original_value", "supplementary_value", "original_presence", "supplementary_presence", "comparison_result"])
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    assert len(recon_df) == 1
+    assert recon_df.iloc[0]["reconciliation_status"] == "SUPPLEMENTARY_ONLY"
+    assert recon_df.iloc[0]["extract_date"] == "2026-01-14"
