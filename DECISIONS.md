@@ -273,3 +273,18 @@ Keeping the adapter isolated ensures 100% backward compatibility with the existi
 ### Consequences
 The original data can now be transformed into canonical records on demand for later S6 reconciliation without polluting the existing Phase 0-7 operational pipeline.
 
+
+## DEC-018 — Supplementary Source Canonical Adapter (S2 Part B)
+### Context
+The Supplementary Source must be mapped into the CANONICAL_SCHEMA to enable later reconciliation. It lacks several fields (status, contact_count, client_ref) and uses a different structural vocabulary (e.g., reference vs case_id).
+### Options considered
+1. Merge the supplementary mapping directly into the existing ingestion or detection pipeline.
+2. Merge the datasets early inside the adapter layer.
+3. Extend the isolated adapter architecture with a source-specific supplementary adapter.
+### Decision
+Adopt Option 3. Implemented `adapt_supplementary_to_canonical` in `adapter.py`. This strictly preserves the supplementary source's exact structure, mapping fields 1:1 where they exist, and mapping missing fields to empty strings (not artificial zeroes or defaults). We derive `status` safely: EMPTY closure -> Open, VALID closure -> Closed, INVALID/AMBIGUOUS -> empty string (refusing to manufacture certainty).
+### Reasoning
+Separation of concerns is maintained. The supplementary adapter performs deterministic mapping without silently correcting anomalies or merging datasets. It handles missing values safely and preserves the actual `extract_date` (2026-01-14). Maintaining source evidence preserves downstream options for the reconciliation layer.
+### Consequences
+Both sources can now be safely translated into a shared vocabulary (Canonical Schema). Identity matching, field comparison, and reconciliation (S3+) can now compare equivalent structures without dealing with structural noise. Deduplication and conflict resolution remain intentionally deferred.
+

@@ -472,3 +472,29 @@ Establish a strict, distinct Canonical Schema that neutralizes vocabulary differ
 **Decision**
 Adopt a standalone original source adapter that maps 1:1 into the Canonical Schema, maintaining missingness and source provenance without interfering with the existing operational pipeline.
 
+
+### Phase S2 — Supplementary Source Adapter
+
+**AI Contribution**
+- Implemented \dapt_supplementary_to_canonical\ and \derive_supplementary_status\ in \src/dirty_data/adapter.py\.
+- Ensured \contact_count\ and \client_ref\ were cleanly assigned empty strings to strictly enforce the unavailable-field distinction.
+- Created 5 targeted tests for the supplementary adapter mapping logic, ensuring missing values, malformed dates, status derivation rules, and real dataset execution (4,180 rows) all passed.
+
+**My Contribution & Verification**
+- Reviewed field mappings to confirm reference correctly mapped to case_id and the other canonical names were utilized accurately.
+- Checked the missingness handling to verify that no fabricated values were introduced (e.g., empty contact_count is not coerced to 0).
+- Scrutinized the status-semantics derivation rule to ensure malformed or ambiguous dates refused to manufacture a false status certainty, aligning perfectly with the provided rule.
+- Reviewed the codebase diff to verify no reconciliation logic, identity matching, deduplication, or dataset merging occurred.
+- Audited the full regression suite (82/82 passing tests) and verified the original dataset raw SHA-256 hash remained pristine.
+- Decided the Supplementary adapter fulfilled the requirements by isolating translation without impacting the Original processing pipeline.
+
+**Verification Evidence**
+- Test Count: 82 items collected.
+- Test Results: 82 passed, 0 failed.
+- Raw Hashes: Original CSV (f65bec45...) and Supplementary CSV (95ed4d9f...) verified immutable.
+- Commit: 511c5b4
+- Push completed successfully.
+
+**Decision**
+Adopt the isolated supplementary adapter function, establishing a purely structural translation layer for the supplementary data that safely preserves extraction dates, empty string omissions, and safely derived conceptual status without prematurely reconciling cross-source conflicts.
+
