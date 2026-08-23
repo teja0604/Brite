@@ -33,7 +33,9 @@ def test_canonical_schema_concepts():
     expected_canonical_fields = [
         'case_id', 'client_ref', 'district', 'intake_date', 'closure_date',
         'status', 'category', 'priority', 'caseworker_id', 'contact_count',
-        'extract_date', 'source_system'
+        'extract_date', 'original_extract_date', 'supplementary_extract_date',
+        'original_source_row', 'supplementary_source_row', 'field_availability',
+        'source_system'
     ]
     actual = get_expected_columns('canonical')
     assert set(expected_canonical_fields) == set(actual)

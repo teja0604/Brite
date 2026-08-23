@@ -105,6 +105,41 @@ CANONICAL_SCHEMA = {
         "role": "metadata",
         "source_mapping": ["extract_date"]
     },
+    "original_extract_date": {
+        "semantic": "Date the original source was extracted.",
+        "type": "string",
+        "nullable": True,
+        "derived": True,
+        "role": "metadata"
+    },
+    "supplementary_extract_date": {
+        "semantic": "Date the supplementary source was extracted.",
+        "type": "string",
+        "nullable": True,
+        "derived": True,
+        "role": "metadata"
+    },
+    "original_source_row": {
+        "semantic": "Row index from original source.",
+        "type": "string",
+        "nullable": True,
+        "derived": True,
+        "role": "metadata"
+    },
+    "supplementary_source_row": {
+        "semantic": "Row index from supplementary source.",
+        "type": "string",
+        "nullable": True,
+        "derived": True,
+        "role": "metadata"
+    },
+    "field_availability": {
+        "semantic": "Structured metadata describing field availability from source.",
+        "type": "dict",
+        "nullable": True,
+        "derived": True,
+        "role": "metadata"
+    },
     "source_system": {
         "semantic": "The origin of this canonical record (e.g. Original or Supplementary).",
         "type": "string",

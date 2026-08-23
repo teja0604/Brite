@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Tuple
 from .contract import analyze_date_format
 
 COMPARISON_FIELDS = [
+    "client_ref",
     "district",
     "intake_date",
     "closure_date",
@@ -13,9 +14,8 @@ COMPARISON_FIELDS = [
     "contact_count"
 ]
 
-# Hardcoded domain facts about the source schemas, as extracted from S1 schema definitions
-ORIGINAL_UNAVAILABLE = []
-SUPPLEMENTARY_UNAVAILABLE = ["contact_count"]
+# Hardcoded domain facts are NO LONGER ALLOWED in S4.
+# We strictly consume canonical field_availability.
 
 def _parse_unambiguous_date(val: str) -> str:
     # A simplified date parser for known formats (since analyze_date_format returns format class, not parsed date)
@@ -26,12 +26,12 @@ def _parse_unambiguous_date(val: str) -> str:
     except Exception:
         return ""
 
-def _compare_single_field(field_name: str, orig_val: str, supp_val: str) -> Tuple[str, str, str, str]:
+def _compare_single_field(field_name: str, orig_val: str, supp_val: str, orig_avail: dict, supp_avail: dict) -> Tuple[str, str, str, str]:
     """
     Returns (result, reason, orig_presence, supp_presence)
     """
-    orig_has = field_name not in ORIGINAL_UNAVAILABLE
-    supp_has = field_name not in SUPPLEMENTARY_UNAVAILABLE
+    orig_has = orig_avail.get(field_name) != "UNAVAILABLE"
+    supp_has = supp_avail.get(field_name) != "UNAVAILABLE"
     
     orig_presence = "PRESENT" if orig_has else "UNAVAILABLE"
     supp_presence = "PRESENT" if supp_has else "UNAVAILABLE"
@@ -136,7 +136,10 @@ def compare_fields(aligned_df: pd.DataFrame, identity_index_df: pd.DataFrame) ->
                     o_val = str(getattr(o_row, field, ""))
                     s_val = str(getattr(s_row, field, ""))
                     
-                    result, reason, o_pres, s_pres = _compare_single_field(field, o_val, s_val)
+                    o_avail = getattr(o_row, "field_availability", {})
+                    s_avail = getattr(s_row, "field_availability", {})
+                    
+                    result, reason, o_pres, s_pres = _compare_single_field(field, o_val, s_val, o_avail, s_avail)
                     
                     records.append({
                         "case_id": case_id,

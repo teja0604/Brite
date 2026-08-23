@@ -38,6 +38,13 @@ def adapt_original_to_canonical(raw_df: pd.DataFrame) -> pd.DataFrame:
     # The Original source does not contain an extract_date.
     # Preserve missingness as an empty string (or None) rather than fabricating a date.
     canonical_df['extract_date'] = ''
+    canonical_df['original_extract_date'] = ''
+    canonical_df['supplementary_extract_date'] = ''
+    
+    # 7. Field Availability & Provenance
+    canonical_df['field_availability'] = [{} for _ in range(len(canonical_df))]
+    canonical_df['original_source_row'] = canonical_df.index
+    canonical_df['supplementary_source_row'] = ''
     
     # Ensure only canonical columns plus traceability metadata are returned
     expected_canonical = get_expected_columns('canonical')
@@ -83,12 +90,17 @@ def adapt_supplementary_to_canonical(raw_df: pd.DataFrame) -> pd.DataFrame:
     # 2. Extract Date
     # Explicitly present in the supplementary source
     canonical_df['extract_date'] = raw_df['extract_date']
+    canonical_df['original_extract_date'] = ''
+    canonical_df['supplementary_extract_date'] = raw_df['extract_date']
     
     # 3. Unavailable Fields
     # The supplementary source does not contain client_ref or contact_count.
     # We must explicitly mark them as missing/unavailable (""), NOT fabricating 0 or default values.
     canonical_df['client_ref'] = ''
     canonical_df['contact_count'] = ''
+    canonical_df['field_availability'] = [{"client_ref": "UNAVAILABLE", "contact_count": "UNAVAILABLE"} for _ in range(len(canonical_df))]
+    canonical_df['original_source_row'] = ''
+    canonical_df['supplementary_source_row'] = raw_df.index
     
     # 4. Status Handling
     # The supplementary source lacks a status column. We conceptually derive it 

@@ -365,3 +365,38 @@ I explicitly reviewed and approved the following reconciliation rules:
 
 ### Consequences
 The reconciled dataset deterministically resolves field-level conflicts. The 46 `MANY_TO_ONE` identities preserve Original physical-row cardinality, but their analytical values may change according to the explicitly approved field-level reconciliation rules. No silent record loss occurs, and the audit trail captures all decisions with explicit provenance tracking.
+
+## DEC-023: Phase S5 Technical Corrections
+
+### Date
+2026-08-23
+
+### Context
+Following the human approval of the S5 business reconciliation policy, three architectural defects were identified in the S5 implementation: missing row-level provenance in the reconciled dataset, semantic ambiguity between "missing" and "unavailable" fields from the supplementary source, and the loss of supplementary extract-date provenance.
+
+### Decision
+Implemented strictly technical corrections without modifying the human-approved business rules:
+1. **Technical Provenance Correction**: Added `original_source_row` and `supplementary_source_row` to the canonical schema and populated them in `reconciled_df` to maintain exact lineage to the S2/S3 physical rows, including shared supplementary rows for `MANY_TO_ONE` identities.
+2. **Missing/Unavailable Semantic Correction**: Introduced `field_availability` metadata to the canonical schema (populated by the adapters). This explicitly separates canonical field values from source-schema availability, allowing downstream systems to distinguish between genuine missing values (e.g. `band`) and structurally unavailable fields (e.g. `contact_count` in the supplementary source) without fabricating business values like `0`.
+3. **Technical Auditability Correction**: Added `original_extract_date` and `supplementary_extract_date` to the canonical schema to preserve machine-readable provenance of extraction dates without corrupting the canonical `extract_date` field. Also added `selected_source` to every row of the reconciliation audit log to ensure total traceability of chosen values.
+
+### Consequences
+The reconciled dataset and audit logs now maintain full architectural provenance and semantic safety for downstream analysis. No raw files, Original pipeline logic (S0-S4), or S5 population counts (15,880 expected reconciled rows) were altered. All technical corrections align with the pre-existing, locked human-approved business policy.
+
+## DEC-024: Phase S4/S5 Field Comparison Unification for `client_ref`
+
+### Date
+2026-08-23
+
+### Context
+A forensic audit identified that `client_ref` was omitted from S4 `COMPARISON_FIELDS` and was passed through directly in S5, bypassing S4 comparison evidence generation, missing-vs-unavailable classification, and reconciliation audit logging.
+
+### Decision
+1. Included `client_ref` in `COMPARISON_FIELDS` within `compare.py`.
+2. Removed the manual assignment of `client_ref` in `reconcile.py`, allowing `client_ref` to flow through the standard field-level reconciliation loop (`RULE-S5-UNAVAILABLE`, `RULE-S5-IMPUTE`, `RULE-S5-MATCH`, `RULE-S5-CONFLICT`).
+3. Under the approved reconciliation policy, Original retains precedence for `client_ref` on conflicts, `UNAVAILABLE_ONE_SIDE` retains Original available evidence, and `MISSING_ONE_SIDE` enables imputation from Supplementary when present.
+4. Added focused regression tests in `test_compare.py` and `test_reconcile.py` verifying `client_ref` taxonomy, reconciliation decisions, provenance, and audit logging.
+
+### Consequences
+All 9 canonical business fields now strictly pass through the unified S4 → S5 comparison, reconciliation, and audit pipeline. Total comparison rows on the real dataset increased from 39,864 to 43,310, and all 3,446 matched record comparisons for `client_ref` are explicitly audited as `UNAVAILABLE_ONE_SIDE` / `RETAIN_ORIGINAL_AVAILABLE` without changing any population counts or business policies.
+

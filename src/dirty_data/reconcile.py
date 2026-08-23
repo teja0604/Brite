@@ -61,6 +61,7 @@ def reconcile_dataset(
                 "comparison_result": "NOT_COMPARABLE",
                 "reconciliation_decision": "UNRESOLVED_MULTI_RECORD",
                 "selected_value": "",
+                "selected_source": "",
                 "reason": f"Identity requires explicit multi-record handling ({cardinality}).",
                 "rule_applied": "RULE-S5-COMPLEX-MULTI"
             })
@@ -88,6 +89,7 @@ def reconcile_dataset(
                     "comparison_result": "NOT_COMPARABLE",
                     "reconciliation_decision": "PASS_THROUGH",
                     "selected_value": "ORIGINAL",
+                    "selected_source": "ORIGINAL",
                     "reason": "Identity exists only in Original source",
                     "rule_applied": "RULE-S5-ORIGINAL-ONLY"
                 })
@@ -115,6 +117,7 @@ def reconcile_dataset(
                     "comparison_result": "NOT_COMPARABLE",
                     "reconciliation_decision": "PASS_THROUGH",
                     "selected_value": "SUPPLEMENTARY",
+                    "selected_source": "SUPPLEMENTARY",
                     "reason": "Identity exists only in Supplementary source",
                     "rule_applied": "RULE-S5-SUPPLEMENTARY-ONLY"
                 })
@@ -131,8 +134,7 @@ def reconcile_dataset(
             
             reconciled_rec = {"case_id": case_id}
             
-            # Carry over non-compared fields safely
-            reconciled_rec["client_ref"] = orig_row.get("client_ref", "")
+            # Carry over non-compared metadata fields safely
             reconciled_rec["extract_date"] = orig_row.get("extract_date", "")
             reconciled_rec["source_system"] = "RECONCILED"
             
@@ -144,6 +146,16 @@ def reconcile_dataset(
             case_supp_rows = case_data[case_data["source_system"] == "SUPPLEMENTARY"]
             supp_ext = str(case_supp_rows.iloc[0].get("extract_date", "")) if not case_supp_rows.empty else ""
             
+            # Provenance and field availability
+            reconciled_rec["original_source_row"] = orig_idx
+            reconciled_rec["supplementary_source_row"] = supp_idx
+            reconciled_rec["original_extract_date"] = orig_ext
+            reconciled_rec["supplementary_extract_date"] = supp_ext
+            
+            orig_avail = orig_row.get("field_availability", {}) if isinstance(orig_row.get("field_availability", {}), dict) else {}
+            supp_avail = case_supp_rows.iloc[0].get("field_availability", {}) if not case_supp_rows.empty and isinstance(case_supp_rows.iloc[0].get("field_availability", {}), dict) else {}
+            reconciled_rec["field_availability"] = {}
+            
             audit_logs.append({
                 "case_id": case_id,
                 "field": "extract_date",
@@ -154,6 +166,7 @@ def reconcile_dataset(
                 "comparison_result": "PROVENANCE_ONLY",
                 "reconciliation_decision": "RETAIN_PROVENANCE",
                 "selected_value": orig_ext,
+                "selected_source": "ORIGINAL",
                 "reason": "Retain source provenance for extraction date without treating as conflict.",
                 "rule_applied": "RULE-S5-EXTRACT-DATE"
             })
@@ -168,12 +181,14 @@ def reconcile_dataset(
                 decision = ""
                 rule = ""
                 reason = ""
+                sel_source = ""
                 
                 if res == "EXACT_MATCH":
                     selected_val = o_val
                     decision = "RETAIN_MATCH"
                     rule = "RULE-S5-MATCH"
                     reason = "Values match exactly"
+                    sel_source = "ORIGINAL"
                     
                 elif res == "REPRESENTATION_EQUIVALENT":
                     # Option 1: Retain Original string representation
@@ -181,6 +196,7 @@ def reconcile_dataset(
                     decision = "RETAIN_ORIGINAL_FORMAT"
                     rule = "RULE-S5-REP-EQUIV"
                     reason = "Values are equivalent; defaulting to original baseline formatting"
+                    sel_source = "ORIGINAL"
                     
                 elif res == "UNAVAILABLE_ONE_SIDE":
                     # Retain the side that has the field
@@ -189,11 +205,13 @@ def reconcile_dataset(
                         decision = "RETAIN_ORIGINAL_AVAILABLE"
                         rule = "RULE-S5-UNAVAILABLE"
                         reason = "Field unavailable in Supplementary; preserving Original evidence"
+                        sel_source = "ORIGINAL"
                     else:
                         selected_val = s_val
                         decision = "RETAIN_SUPPLEMENTARY_AVAILABLE"
                         rule = "RULE-S5-UNAVAILABLE"
                         reason = "Field unavailable in Original; preserving Supplementary evidence"
+                        sel_source = "SUPPLEMENTARY"
                         
                 elif res == "MISSING_ONE_SIDE":
                     # Option 1: Impute from the present side
@@ -202,11 +220,13 @@ def reconcile_dataset(
                         decision = "IMPUTE_FROM_SUPPLEMENTARY"
                         rule = "RULE-S5-IMPUTE"
                         reason = "Original is missing; imputing from present Supplementary value"
+                        sel_source = "SUPPLEMENTARY"
                     else:
                         selected_val = o_val
                         decision = "IMPUTE_FROM_ORIGINAL"
                         rule = "RULE-S5-IMPUTE"
                         reason = "Supplementary is missing; imputing from present Original value"
+                        sel_source = "ORIGINAL"
                         
                 elif res in ["CONFLICT", "INVALID_COMPARISON"]:
                     # Option 3 (Field-specific): Supplementary wins for status and closure_date
@@ -216,13 +236,20 @@ def reconcile_dataset(
                         decision = "SUPPLEMENTARY_WINS"
                         rule = "RULE-S5-CONFLICT"
                         reason = "Supplementary source provides authoritative operational updates for this field."
+                        sel_source = "SUPPLEMENTARY"
                     else:
                         selected_val = o_val
                         decision = "ORIGINAL_WINS"
                         rule = "RULE-S5-CONFLICT"
                         reason = "Original source retains precedence for this field to prevent arbitrary baseline churn."
+                        sel_source = "ORIGINAL"
                 
                 reconciled_rec[field] = selected_val
+                
+                if sel_source == "ORIGINAL" and orig_avail.get(field) == "UNAVAILABLE":
+                    reconciled_rec["field_availability"][field] = "UNAVAILABLE"
+                elif sel_source == "SUPPLEMENTARY" and supp_avail.get(field) == "UNAVAILABLE":
+                    reconciled_rec["field_availability"][field] = "UNAVAILABLE"
                 
                 audit_logs.append({
                     "case_id": case_id,
@@ -234,6 +261,7 @@ def reconcile_dataset(
                     "comparison_result": res,
                     "reconciliation_decision": decision,
                     "selected_value": selected_val,
+                    "selected_source": sel_source,
                     "reason": reason,
                     "rule_applied": rule
                 })

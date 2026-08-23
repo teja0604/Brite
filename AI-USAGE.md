@@ -579,3 +579,33 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 - I explicitly reviewed and approved the **MANY_TO_ONE preservation strategy** (producing one reconciled output row per Original physical row without implicit deduplication, and leaving ONE_TO_MANY/MANY_TO_MANY explicitly unresolved).
 - I verified the architectural requirement for **SUPPLEMENTARY_ONLY preservation** to retain all physical evidence and prevent silent record loss.
 - I verified raw hashes were untouched.
+
+### Phase S5 - Technical Corrections
+
+**AI Contribution**
+- Identified and implemented technical corrections to the S5 reconciliation logic to ensure downstream semantic safety and architectural auditability without modifying the locked human-approved business policy.
+- Introduced `original_source_row` and `supplementary_source_row` to the canonical schema to strictly trace row provenance.
+- Separated source-schema availability logic from literal missing values by adding `field_availability` metadata.
+- Corrected extract-date provenance by introducing `original_extract_date` and `supplementary_extract_date` to retain machine-readable provenance.
+- Enforced `selected_source` logging in the reconciliation audit trail.
+
+**My Contribution & Verification**
+- I explicitly authorized only these minimum technical corrections.
+- I verified that no new business policy was created or hallucinated.
+- I verified that population counts remained unchanged (19,280 raw, 15,880 expected reconciled) and the original pipeline was completely unaffected.
+- I verified that the `contact_count` unavailable-semantics and extract-date provenance defects were correctly addressed without mutating existing raw data or business-schema meaning.
+- I reviewed the tests and git diff to verify strict adherence to the architecture boundary and the absence of any unauthorized S6 changes.
+
+### Phase S4/S5 — Field Comparison Unification for `client_ref`
+
+**AI Contribution**
+- Identified and resolved the omission of `client_ref` from S4 `COMPARISON_FIELDS` and the manual bypass in `reconcile.py`.
+- Added `client_ref` to `COMPARISON_FIELDS` in `src/dirty_data/compare.py`.
+- Removed `reconciled_rec["client_ref"]` bypass from `src/dirty_data/reconcile.py`, allowing `client_ref` to follow standard field comparison, missing-vs-unavailable classification, and reconciliation audit logging.
+- Added comprehensive unit tests in `tests/test_compare.py` and `tests/test_reconcile.py`.
+
+**My Contribution & Verification**
+- Verified that all 9 canonical business fields now pass through the uniform comparison and reconciliation engine.
+- Verified that no business rules or precedence policies were altered.
+- Confirmed that real-world population counts remain strictly conserved (15,880 reconciled rows) and all 105 tests pass.
+

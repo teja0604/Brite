@@ -135,6 +135,18 @@ def test_15_16_many_to_one_preservation():
             "original_value": "Pending", "supplementary_value": "Closed",
             "original_presence": "PRESENT", "supplementary_presence": "PRESENT",
             "comparison_result": "CONFLICT"
+        },
+        {
+            "case_id": "C1", "original_source_row": 1, "supplementary_source_row": 3, "field_name": "client_ref",
+            "original_value": "Ref1A", "supplementary_value": "",
+            "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
+            "comparison_result": "UNAVAILABLE_ONE_SIDE"
+        },
+        {
+            "case_id": "C1", "original_source_row": 2, "supplementary_source_row": 3, "field_name": "client_ref",
+            "original_value": "Ref1B", "supplementary_value": "",
+            "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
+            "comparison_result": "UNAVAILABLE_ONE_SIDE"
         }
     ])
     recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
@@ -195,3 +207,102 @@ def test_21_supplementary_only_preservation():
     assert len(recon_df) == 1
     assert recon_df.iloc[0]["reconciliation_status"] == "SUPPLEMENTARY_ONLY"
     assert recon_df.iloc[0]["extract_date"] == "2026-01-14"
+
+def test_s5_preserves_metadata():
+    aligned_df = pd.DataFrame({
+        "case_id": ["C1", "C1"],
+        "source_system": ["ORIGINAL", "SUPPLEMENTARY"],
+        "source_row_index": [10, 20],
+        "field_availability": [{}, {"client_ref": "UNAVAILABLE"}]
+    })
+    idx_df = pd.DataFrame({
+        "case_id": ["C1"],
+        "cardinality": ["ONE_TO_ONE"],
+        "match_status": ["MATCHED"]
+    })
+    comp_df = pd.DataFrame([{
+        "case_id": "C1", "original_source_row": 10, "supplementary_source_row": 20, "field_name": "client_ref",
+        "original_value": "Ref1", "supplementary_value": "",
+        "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
+        "comparison_result": "UNAVAILABLE_ONE_SIDE"
+    }])
+    recon_df, unresolved_df, audit_df = reconcile_dataset(aligned_df, idx_df, comp_df)
+    
+    assert len(recon_df) == 1
+    availability = recon_df.iloc[0].get("field_availability", {})
+    # Original is chosen because of UNAVAILABLE_ONE_SIDE (Original is PRESENT, Supp is UNAVAILABLE).
+    # Wait, the rule is "Retain the side that has the field". Original has it.
+    # So `sel_source` = "ORIGINAL".
+    # And orig_avail for `client_ref` is NOT unavailable. So it's not put into the dict.
+    assert "client_ref" not in availability
+
+    # What if we had a conflict where Supp wins?
+    comp_df2 = pd.DataFrame([{
+        "case_id": "C1", "original_source_row": 10, "supplementary_source_row": 20, "field_name": "status",
+        "original_value": "Open", "supplementary_value": "",
+        "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
+        "comparison_result": "CONFLICT"
+    }])
+    
+    aligned_df2 = pd.DataFrame({
+        "case_id": ["C1", "C1"],
+        "source_system": ["ORIGINAL", "SUPPLEMENTARY"],
+        "source_row_index": [10, 20],
+        "field_availability": [{}, {"status": "UNAVAILABLE"}]
+    })
+    recon_df2, _, _ = reconcile_dataset(aligned_df2, idx_df, comp_df2)
+    # Supplementary wins status
+    availability2 = recon_df2.iloc[0].get("field_availability", {})
+    assert availability2.get("status") == "UNAVAILABLE"
+
+def test_client_ref_reconciliation_cases():
+    aligned_df = pd.DataFrame({
+        "case_id": ["C1", "C1"],
+        "source_system": ["ORIGINAL", "SUPPLEMENTARY"],
+        "source_row_index": [10, 20],
+        "field_availability": [{}, {"client_ref": "UNAVAILABLE"}]
+    })
+    idx_df = pd.DataFrame({
+        "case_id": ["C1"],
+        "cardinality": ["ONE_TO_ONE"],
+        "match_status": ["MATCHED"]
+    })
+
+    # 1. UNAVAILABLE_ONE_SIDE (Supplementary unavailable -> Original wins)
+    comp_unavail = pd.DataFrame([{
+        "case_id": "C1", "original_source_row": 10, "supplementary_source_row": 20, "field_name": "client_ref",
+        "original_value": "Alice", "supplementary_value": "",
+        "original_presence": "PRESENT", "supplementary_presence": "UNAVAILABLE",
+        "comparison_result": "UNAVAILABLE_ONE_SIDE"
+    }])
+    r_unavail, _, a_unavail = reconcile_dataset(aligned_df, idx_df, comp_unavail)
+    assert r_unavail.iloc[0]["client_ref"] == "Alice"
+    audit_unavail = a_unavail[a_unavail["field"] == "client_ref"].iloc[0]
+    assert audit_unavail["reconciliation_decision"] == "RETAIN_ORIGINAL_AVAILABLE"
+    assert audit_unavail["selected_source"] == "ORIGINAL"
+
+    # 2. MISSING_ONE_SIDE (Original missing, Supplementary present -> Impute from Supplementary)
+    comp_missing = pd.DataFrame([{
+        "case_id": "C1", "original_source_row": 10, "supplementary_source_row": 20, "field_name": "client_ref",
+        "original_value": "", "supplementary_value": "Bob",
+        "original_presence": "MISSING", "supplementary_presence": "PRESENT",
+        "comparison_result": "MISSING_ONE_SIDE"
+    }])
+    r_missing, _, a_missing = reconcile_dataset(aligned_df, idx_df, comp_missing)
+    assert r_missing.iloc[0]["client_ref"] == "Bob"
+    audit_missing = a_missing[a_missing["field"] == "client_ref"].iloc[0]
+    assert audit_missing["reconciliation_decision"] == "IMPUTE_FROM_SUPPLEMENTARY"
+    assert audit_missing["selected_source"] == "SUPPLEMENTARY"
+
+    # 3. CONFLICT (Original wins client_ref conflict under approved policy)
+    comp_conflict = pd.DataFrame([{
+        "case_id": "C1", "original_source_row": 10, "supplementary_source_row": 20, "field_name": "client_ref",
+        "original_value": "Alice", "supplementary_value": "Bob",
+        "original_presence": "PRESENT", "supplementary_presence": "PRESENT",
+        "comparison_result": "CONFLICT"
+    }])
+    r_conflict, _, a_conflict = reconcile_dataset(aligned_df, idx_df, comp_conflict)
+    assert r_conflict.iloc[0]["client_ref"] == "Alice"
+    audit_conflict = a_conflict[a_conflict["field"] == "client_ref"].iloc[0]
+    assert audit_conflict["reconciliation_decision"] == "ORIGINAL_WINS"
+    assert audit_conflict["selected_source"] == "ORIGINAL"
