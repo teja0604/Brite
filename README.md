@@ -55,9 +55,9 @@ The original input is expected at:
 The supplementary Surprise Challenge input is expected at:
 `data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
 
-**IMPORTANT**: The supplementary CSV is an organizer-provided raw input and is NOT committed to this repository. You must supply this file and place it in the exact path above to reproduce the Surprise Challenge. Do not modify the CSV contents.
+Both files are included in this repository to ensure a fresh clone can immediately reproduce the entire pipeline without requiring manual data placement. Do not modify the CSV contents.
 
-Once the raw files are placed, the pipeline executes in two explicit stages.
+The pipeline executes in two explicit stages.
 
 First, generate the frozen upstream artifacts (S2-S5):
 
@@ -81,7 +81,7 @@ $env:PYTHONPATH="src"; python run_s6_release.py
 PYTHONPATH=src python run_s6_release.py
 ```
 
-Success is confirmed when the script outputs `S6 release verification passed` and verification artifacts are generated. A fresh clone cannot run S6 immediately if required raw inputs are absent.
+Success is confirmed when the script outputs `S6 release verification passed` and verification artifacts are generated.
 
 ## 4. What the Project Does
 
@@ -208,7 +208,7 @@ The project contains independent verification logic that checks final analytical
 
 1. Clone repository.
 2. Install dependencies.
-3. Place required organizer raw inputs in the documented paths.
+3. (Optional) Verify raw inputs are present in `data/raw`.
 4. Set PYTHONPATH=src.
 5. Run the complete test suite.
 6. Generate required frozen evidence.
@@ -248,7 +248,7 @@ export PYTHONPATH=src
 ```
 
 ### Missing supplementary input
-Ensure the supplementary file is located exactly at:
+Ensure you have not deleted the repository's provided supplementary file at:
 `data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
 
 ### Missing frozen artifacts
@@ -277,7 +277,7 @@ python -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Place organizer inputs
+# 4. (Optional) Verify organizer inputs
 # Verify case-export-supplementary.csv is in data/raw/2 - Dirty Data, Real Decisions/
 
 # 5. Set PYTHONPATH
@@ -307,7 +307,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Place organizer inputs
+# 4. (Optional) Verify organizer inputs
 # Verify case-export-supplementary.csv is in data/raw/2 - Dirty Data, Real Decisions/
 
 # 5. Set PYTHONPATH

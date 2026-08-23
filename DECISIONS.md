@@ -47,6 +47,25 @@ More intermediate artifacts and code are required, but provenance and reproducib
 
 ---
 
+## 2b. Why Commit Raw Organizer Data to Git?
+
+### Alternatives
+- Exclude data via `.gitignore` and require manual download
+- Provide an automated download script
+
+### Decision
+Include the exact organizer-provided raw datasets directly in the Git repository.
+
+### Why
+The primary goal is zero-friction reproducibility for the evaluator. The data is small and explicitly provided for this challenge. 
+
+While raw data must be *immutable* (never modified by the pipeline), there is no rule stating it must be *untracked* (excluded from version control). By tracking it, a `git clone` yields a fully runnable pipeline out-of-the-box.
+
+### Trade-off
+The repository size increases slightly, but the evaluator experience is vastly improved.
+
+---
+
 ## 3. Why Read Data as Strings Instead of Automatic pandas Types?
 
 ### Alternatives
