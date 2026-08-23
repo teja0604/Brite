@@ -1,77 +1,44 @@
 # Brite Hackathon — Dirty Data, Real Decisions
 
-This is a deterministic Python data-quality, reconciliation, and analytics pipeline. It processes the organizer's original dirty dataset alongside the Surprise Challenge supplementary dataset. The pipeline preserves raw evidence and provenance by never modifying source files, resolving identities, isolating exclusions, and producing independent mathematically-verified analytical results.
+This is a deterministic Python data-quality, reconciliation, and analytics pipeline. It processes the organizer's original dirty dataset alongside the Surprise Challenge supplementary dataset. The pipeline preserves raw evidence and provenance by never modifying source files, explicitly resolving identities, isolating exclusions, and producing independently verified analytical results.
 
-## What the Solution Does
+## Judge Quick Start
 
-The pipeline systematically performs identity matching, field-level comparison, and explicit conflict reconciliation based on documented policies. It generates frozen evidentiary JSON artifacts (S2-S5), executes analytical calculations (S6), and incorporates a mathematically independent verifier to guarantee no arbitrary logic or tampered outputs can survive undetected. Finally, it produces defensible answers to the organizer's three questions through dedicated Q1, Q2, and Q3 outputs.
-
-## Requirements
-
-- **Python**: Python 3.8+
-- **Packages**: `pandas`, `pytest`, `numpy` (from `requirements.txt`)
-
-## Clone the Repository
-
+**1. Clone the repository and enter the directory:**
 ```bash
 git clone https://github.com/teja0604/Brite.git
 cd Brite
 ```
 
-## Create and Activate Virtual Environment
+**2. Create and activate a virtual environment:**
 
-```bash
-python -m venv .venv
-```
-
-**Windows:**
+*Windows PowerShell:*
 ```powershell
-.venv\Scripts\Activate.ps1
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-**Linux/macOS:**
+*Linux/macOS:*
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-## Install Dependencies
-
+**3. Install dependencies:**
 ```bash
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-## Run the Production Pipeline
+**4. Run the clean-clone test suite:**
 
-Run the pipeline from a clean clone. This generates all frozen artifacts and final analytical outputs.
-
-**Windows:**
-```powershell
-$env:PYTHONPATH="src"
-python -m dirty_data.freeze_artifacts
-python run_s6_release.py
-```
-
-**Linux/macOS:**
-```bash
-export PYTHONPATH=src
-python -m dirty_data.freeze_artifacts
-python run_s6_release.py
-```
-
-*(Successful execution will output `S6 release verification passed`)*
-
-## Run the Complete Test Suite
-
-The 113 tests cover edge-case data scenarios, deterministic ingestion rules, identity permutations, reconciliation logic, and corruption matrix adversarial testing.
-
-**Windows:**
+*Windows PowerShell:*
 ```powershell
 $env:PYTHONPATH="src"
 python -m pytest -v
 ```
 
-**Linux/macOS:**
+*Linux/macOS:*
 ```bash
 export PYTHONPATH=src
 python -m pytest -v
@@ -79,46 +46,79 @@ python -m pytest -v
 
 *(Expected result: `113 passed`)*
 
+**5. Run the production pipeline:**
+*(This requires the same `$env:PYTHONPATH="src"` or `export PYTHONPATH=src` environment variable set in step 4).*
+
+```bash
+python -m dirty_data.freeze_artifacts
+python run_s6_release.py
+```
+
+*(Expected result: `S6 release verification passed`)*
+
+**6. Run the post-production test suite:**
+```bash
+python -m pytest -v
+```
+
+*(Expected result: `113 passed`)*
+
+## Requirements
+
+The verified environment requires:
+- **Python**: Python 3.10+ recommended (Python 3.12 has been verified)
+- **Dependencies**: Come strictly from `requirements.txt` (`pandas`, `pytest`, `numpy`)
+
+## Raw Datasets
+
+Raw datasets are immutable inputs and must not be modified. The Surprise Challenge supplementary CSV is already committed to the repository at its required raw-data path:
+`data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
+
+The judge must NOT manually download, move, rename, or create this file.
+
 ## Outputs
 
-The production command (`run_s6_release.py`) creates the final outputs inside the `outputs/s6/` directory:
+The clean-clone test suite is designed to run without pre-generated `outputs/`. When the production pipeline is executed, it generates the following output locations:
 
-- `outputs/s6/q1.csv`
-- `outputs/s6/q2.csv`
-- `outputs/s6/q3.csv`
-- `outputs/s6/observations.csv`
-- `outputs/s6/exclusions.csv`
-- `outputs/s6/supplementary_only.csv`
-- `outputs/s6/many_to_one_physical.csv`
-- `outputs/s6/verification.json`
-- `outputs/s6_population_disposition.csv`
+`outputs/frozen/`
 
-*(Frozen JSON evidentiary artifacts are stored under `outputs/frozen/`)*
+`outputs/s6/q1.csv`
+`outputs/s6/q2.csv`
+`outputs/s6/q3.csv`
+`outputs/s6/observations.csv`
+`outputs/s6/exclusions.csv`
+`outputs/s6/supplementary_only.csv`
+`outputs/s6/many_to_one_physical.csv`
+`outputs/s6/verification.json`
+
+`outputs/s6_population_disposition.csv`
 
 ## Answers to Q1, Q2, and Q3
 
-- **Q1**: Measures closure-time deterioration across years. It calculates the 30-day closure rate and median closure duration.
-- **Q2**: Analyzes drivers and breakdowns of closure performance to identify categorical factors affecting time-to-closure.
-- **Q3**: Evaluates the high-priority triage comparison supported by the reconciled data across multiple years.
+The three primary evaluator-facing answer files are:
+- **Q1** → `outputs/s6/q1.csv`
+- **Q2** → `outputs/s6/q2.csv`
+- **Q3** → `outputs/s6/q3.csv`
+
+**Q1**: Measures the 30-day closure rate and median closure duration, including overall and year-level analysis.
+
+**Q2**: Provides breakdowns of closure performance by the supported dimensions (district and category), using the actual generated `q2.csv` structure (e.g., segmenting by 'Ash Hill', 'Standard', 'Complex', etc.).
+
+**Q3**: Evaluates the priority-triage analysis supported by the reconciled evidence, specifically for 2024 and 2025. The pipeline does NOT fabricate a 2023 baseline where required 2023 priority evidence is unavailable.
 
 ## Surprise Challenge Handling
 
-The Surprise Challenge supplementary dataset is included in the repository at its exact required raw-data path: `data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`. The operational data is ingested separately without modifying the original baseline. Identities are matched explicitly, and field-level conflicts are reconciled using documented precedence policies (e.g., Supplementary dates take precedence).
+The Surprise Challenge supplementary dataset is ingested separately. Identities are explicitly reconciled, and source evidence/provenance is fully preserved. Conflicts follow documented field-level reconciliation policies. For example, if closure dates are conflicting and the rules indicate a supplementary precedence, that specific field takes precedence, while other fields follow their own documented policies.
 
 ## Independent Verification
 
-The pipeline leverages a completely isolated "clean room" mathematical verifier (`s6_independent_verifier.py`). It recalculates all metrics using only the immutable frozen JSON artifacts, independent of the production analytical code. It asserts that the answers generated by the production code identically match the verifier's mathematically pure calculation. 
-
-## Deterministic & Reproducible Execution
-
-- **Immutable Data**: Raw inputs (`data/raw/`) are read-only and hashes are verified during execution.
-- **Traceable**: Reconciliation decisions and source-row provenance are strictly preserved down to the final dataset.
-- **Anti-Tamper**: A corruption matrix in the test suite verifies that any modification (e.g., deleting an exclusion, falsifying a Q3 numerator) will fail the independent verifier. 
+The pipeline leverages an isolated independent verifier (`s6_independent_verifier.py`). The independent verifier recalculates required metrics from frozen upstream evidence independently of the production analytics implementation and compares the results against production outputs. If any production output differs from the upstream evidence, the release fails.
 
 ## Troubleshooting
 
-- **Python not found**: Ensure Python 3.8+ is installed and available in your system's PATH.
-- **Virtual environment activation fails**: On Windows PowerShell, you may need to run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted`.
-- **Missing dependency**: Verify that your virtual environment is active before running `pip install -r requirements.txt`.
-- **ModuleNotFoundError for 'dirty_data'**: You must set your PYTHONPATH appropriately (e.g. `$env:PYTHONPATH="src"`).
-- **Missing frozen artifacts**: Run `python -m dirty_data.freeze_artifacts` before `run_s6_release.py`.
+- **Python not found**: Ensure Python 3.10+ is installed and available in your system's PATH.
+- **PowerShell activation fails**: On Windows PowerShell, you may need to run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted` before activating the environment.
+- **Missing `requirements.txt`**: Ensure you are executing commands from the repository root (`Brite/`), not the parent directory.
+- **`ModuleNotFoundError` for `dirty_data`**: You must set your PYTHONPATH appropriately for your OS (e.g., `$env:PYTHONPATH="src"` on Windows or `export PYTHONPATH=src` on Linux/macOS).
+- **Missing frozen artifacts**: Run `python -m dirty_data.freeze_artifacts` before `python run_s6_release.py`.
+- **Disk/temp-space problems**: The test suite generates dynamic isolated environments. If you encounter disk space errors on your primary drive during testing, run pytest with a custom base temp directory (e.g., `python -m pytest -v --basetemp=D:\pytest_temp`).
