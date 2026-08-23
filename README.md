@@ -63,7 +63,7 @@ python run_s6_release.py
 
 ## Run the Complete Test Suite
 
-The 114 tests cover edge-case data scenarios, deterministic ingestion rules, identity permutations, reconciliation logic, and corruption matrix adversarial testing.
+The 113 tests cover edge-case data scenarios, deterministic ingestion rules, identity permutations, reconciliation logic, and corruption matrix adversarial testing.
 
 **Windows:**
 ```powershell
@@ -77,7 +77,7 @@ export PYTHONPATH=src
 python -m pytest -v
 ```
 
-*(Expected result: `114 passed`)*
+*(Expected result: `113 passed`)*
 
 ## Outputs
 
