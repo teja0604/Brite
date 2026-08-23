@@ -17,7 +17,8 @@ def main():
     disposition = build_population_disposition()
     disposition.to_csv("outputs/s6_population_disposition.csv", index=False)
     result = verify()
-    (out / "verification.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    verification_data = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    (out / "verification.json").write_text(verification_data, encoding="utf-8")
     print("S6 release verification passed")
 
 
