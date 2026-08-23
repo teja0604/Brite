@@ -541,3 +541,25 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 - I reviewed the duplicate-identity test cases and confirmed that physical rows remain preserved.
 - I reviewed the regression test results before allowing the phase to close.
 
+
+### Phase S4 — Field-Level Comparison
+
+**AI Contribution**
+- Created \compare.py\ to execute deterministic Cartesian field-level comparisons for matching identities.
+- Implemented comparison taxonomy logic distinguishing \EXACT_MATCH\, \REPRESENTATION_EQUIVALENT\, \CONFLICT\, \MISSING_ONE_SIDE\, \UNAVAILABLE_ONE_SIDE\, \INVALID_COMPARISON\, and \NOT_COMPARABLE\.
+- Encoded \contact_count\ as explicitly unavailable for the Supplementary source to prevent fabricated 0s.
+- Structured comparisons to retain verbatim source evidence and provenance (\source_row_index\) without resolving source precedence or deduplicating records.
+- Wrote 20 tests guaranteeing no raw data modifications, strict missing vs. unavailable semantics, and no assumed winners.
+
+**My Contribution & Verification**
+- I reviewed the S4 comparison taxonomy before implementation.
+- I verified that comparison remains separate from reconciliation.
+- I checked the missing-versus-unavailable distinction.
+- I reviewed the date comparison behavior.
+- I checked that malformed and ambiguous values are not guessed.
+- I verified that source values remain unchanged.
+- I reviewed provenance preservation.
+- I checked that no source precedence was encoded.
+- I reviewed the real-data comparison metrics.
+- I reviewed the complete regression test results.
+

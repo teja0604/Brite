@@ -317,3 +317,24 @@ S3 now produces two complementary artifacts: \ligned_df\ (the physical identity
 - **Why the physical ledger remains unchanged**: The `pd.concat` approach perfectly preserves the physical 19,280 rows and their provenance (`source_system`, `source_row_index`) for future reconciliation phases.
 ### Consequences
 The original 19,280-row `aligned_df` is fully preserved. The new `identity_index_df` allows subsequent phases to instantly route cases based on deterministic, pre-calculated cardinality rules. MANY_TO_ONE identifies that multiple physical records exist on one source side. It does not itself authorize deduplication. Later comparison/reconciliation phases must explicitly determine how those records are handled while preserving the audit trail and avoiding silent record loss.
+
+## DEC-021: Phase S4 Field-Level Comparison
+
+### Date
+2026-08-23
+
+### Context
+Phase S4 requires comparing fields from the Original and Supplementary canonical records, strictly generating evidence without deducing a winning source. We must classify conflicts, exact matches, and differentiate between missing values and unavailable fields. 
+
+### Decision
+1. **Comparison Taxonomy**: S4 classifies all pairwise field comparisons into: EXACT_MATCH, REPRESENTATION_EQUIVALENT, CONFLICT, MISSING_ONE_SIDE, UNAVAILABLE_ONE_SIDE, INVALID_COMPARISON, and NOT_COMPARABLE.
+2. **Missing vs Unavailable**: We distinguish between a field existing but being empty (MISSING_ONE_SIDE) and a field conceptually absent in the source schema (e.g., contact_count in Supplementary) which results in UNAVAILABLE_ONE_SIDE.
+3. **Date Comparison**: Dates are parsed using existing utilities. If formats differ but the underlying day is identical, we classify as REPRESENTATION_EQUIVALENT. Ambiguous and malformed dates are flagged as INVALID_COMPARISON without arbitrary guessing.
+4. **Status Comparison**: Derived supplementary statuses are compared semantically with original statuses.
+5. **Provenance**: Every physical row comparison preserves original_source_row and supplementary_source_row.
+6. **Multi-Record Cardinality**: For cases with multiple physical records (e.g., MANY_TO_ONE), S4 generates a Cartesian product of pairwise comparisons across the identity. This generates exhaustive evidence for every physical row combination without silently introducing deduplication or source precedence logic.
+7. **No Precedence**: S4 creates an artifact of evidence only. There is no 'winner' field.
+
+### Consequences
+S4 outputs a deterministic comparison matrix preserving all physical evidence and explicitly mapping structural disparities across both datasets without making reconciliation decisions.
+
