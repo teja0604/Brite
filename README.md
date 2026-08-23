@@ -71,10 +71,22 @@ The verified environment requires:
 
 ## Raw Datasets
 
-Raw datasets are immutable inputs and must not be modified. The Surprise Challenge supplementary CSV is already committed to the repository at its required raw-data path:
-`data/raw/2 - Dirty Data, Real Decisions/case-export-supplementary.csv`
+The solution uses the organizer‑provided raw CSV files as immutable inputs. They are already tracked in the repository, so a fresh clone contains them.
 
-The judge must NOT manually download, move, rename, or create this file.
+Expected repository layout:
+
+```text
+data/
+└── raw/
+    ├── case-export-2023-2025.csv
+    └── 2 - Dirty Data, Real Decisions/
+        ├── case-export-supplementary.csv
+        └── READ ME FIRST.md
+```
+
+The raw CSV files must remain unchanged and retain their original filenames. No cleaning, preprocessing, or manual modification should be performed.
+
+The judge does not need to add or move any files; they are present after cloning.
 
 ## Outputs
 
