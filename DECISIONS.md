@@ -232,3 +232,16 @@ Adopt sys.path injection (`sys.path.insert(0, str(Path(__file__).resolve().paren
 This is the minimal, least-intrusive fix. It avoids forcing the evaluator to configure environment variables and eliminates packaging complexity that isn't required for a simple data analysis pipeline.
 ### Consequences
 The pipeline runs completely isolated out-of-the-box on any OS without ModuleNotFoundError for internal dirty_data imports.
+
+## DEC-015 - Dual Schema Definition
+### Context
+The Surprise Challenge introduced a supplementary dataset with a completely different schema. Our strict pipeline fails on ingestion if schema expectations aren't matched.
+### Options considered
+1. Relax the original schema to allow optional new columns.
+2. Explicitly define both schemas separately and a canonical schema they map into.
+### Decision
+Adopt Option 2: Defined \ORIGINAL_SCHEMA\, \SUPPLEMENTARY_SCHEMA\, and \CANONICAL_SCHEMA\ in \schema.py\.
+### Reasoning
+This strictly isolates the legacy schema from the new schema, preserving the integrity of the original ingestion logic while enabling a clear mapping layer for adapter design.
+### Consequences
+The pipeline can now explicitly demand distinct expectations for each source file.

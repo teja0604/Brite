@@ -193,3 +193,11 @@ AI assisted in creating a clean-clone isolation test environment outside the rep
 I observed the simulated fresh clone execution pass all regression tests (67/67). I verified that no absolute paths remained in the codebase and that the raw source data was immutable and byte-for-byte identical to the original.
 **Final decision:**
 Approved the pipeline as fully reproducible and isolated, and approved the path-injection fix to maximize evaluator portability without requiring heavy packaging setups.
+
+### Phase S1 - Input/Source Contract
+**AI contribution:**
+AI analyzed the schema of the supplementary dataset and mapped it to the original fields. AI defined the \SUPPLEMENTARY_SCHEMA\ and the unified \CANONICAL_SCHEMA\ in code to explicitly capture the expectations of the dual-ingest system.
+**My verification:**
+I verified that replacing \RAW_SCHEMA\ with the three distinct schemas did not break any existing tests, confirming strict decoupling.
+**Final decision:**
+Approved the schema layer modifications.
