@@ -345,17 +345,22 @@ S4 outputs a deterministic comparison matrix preserving all physical evidence an
 2026-08-23
 
 ### Status
-PROPOSED — PENDING EXPLICIT HUMAN APPROVAL
+HUMAN APPROVED
 
 ### Context
 Phase S5 requires building a deterministic reconciliation policy that converts the evidence produced by S4 into explicit field-level reconciliation decisions. Because there are no existing business rules authorizing source precedence or deduplication, these ambiguities required explicit human review before becoming official policy.
 
-### AI Recommendation (Pending Explicit Human Approval)
-1. **Field-Level Conflict Precedence**: For genuine `CONFLICT`s, the AI proposes that Supplementary wins for `status` and `closure_date` since it provides authoritative operational updates, while Original wins for all other fields to prevent arbitrary baseline churn.
-2. **Missing Value Imputation**: For `MISSING_ONE_SIDE`, the AI proposes imputing the value from the present side (e.g., Supplementary fills Original's blank) to safely improve completeness.
-3. **Representation Equivalents**: When values are equivalent (e.g. date formats), the AI proposes retaining the Original string formatting to minimize arbitrary churn.
-4. **Unavailable Fields**: For `UNAVAILABLE_ONE_SIDE`, the AI proposes retaining the available evidence.
-5. **Multi-Record Identities**: For `MANY_TO_ONE` cases, the AI proposes processing each Cartesian pair (grouped by original_source_row) without deduplication. This generates one reconciled record for each physical Original row, preserving exactly the same number of physical Original records so downstream anomaly detection correctly evaluates identity variants without silent data loss.
+### AI Contribution
+1. **Identified the 5 reconciliation ambiguities**: Field-level conflicts, missing value imputation, representation equivalents, unavailable fields, and multi-record identities (`MANY_TO_ONE`).
+2. **Proposed initial deterministic rules** for each ambiguity, awaiting explicit human approval.
 
-### Consequences (If explicitly approved)
-The reconciled dataset would provide exactly one row per physical Original record for S6, preserving the exact row count of the Phase 0-7 baseline. Genuine conflicts would be handled deterministically via field-specific precedence. Multi-record complexities would be perfectly preserved for the downstream `CANDIDATE_IDENTITY_VARIANT` anomaly detection engine.
+### My Contribution & Verification (Human Approved)
+I explicitly reviewed and approved the following reconciliation rules:
+1. **Field-level precedence**: The Supplementary source wins ONLY for `status` and `closure_date`. The Original source wins for all other fields (`district`, `intake_date`, `category`, `priority`, `caseworker_id`, `client_ref`, `contact_count`). The extraction date (`extract_date`) is not treated as an ordinary business field conflict, but as an explicit provenance record where the original blank value is retained alongside the supplementary extraction date in the audit logs.
+2. **Missing-value handling**: Use the populated value from the available side (`MISSING_ONE_SIDE`), preserve original missingness in audit trail, and explicitly record that imputation occurred.
+3. **Representation-equivalent handling**: Keep the Original string representation without silently normalizing the raw evidence.
+4. **Unavailable-field handling**: Use the value from the source that actually contains the field, without interpreting it as a missing value.
+5. **MANY_TO_ONE preservation strategy**: Produce exactly one reconciled output row per Original physical record. Pair each Original physical record with the single Supplementary record for that identity and apply field-level rules independently. `ONE_TO_MANY` and `MANY_TO_MANY` identities are strictly marked as requiring explicit multi-record handling (`UNRESOLVED_MULTI_RECORD`).
+
+### Consequences
+The reconciled dataset deterministically resolves field-level conflicts. The 46 `MANY_TO_ONE` identities preserve Original physical-row cardinality, but their analytical values may change according to the explicitly approved field-level reconciliation rules. No silent record loss occurs, and the audit trail captures all decisions with explicit provenance tracking.

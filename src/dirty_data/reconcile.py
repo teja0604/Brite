@@ -40,10 +40,27 @@ def reconcile_dataset(
         
         # ---------------------------------------------------------
         # ---------------------------------------------------------
+        if cardinality in ["ONE_TO_MANY", "MANY_TO_MANY"]:
+            audit_logs.append({
+                "case_id": case_id,
+                "field": "ALL",
+                "original_source_row": "",
+                "supplementary_source_row": "",
+                "original_value": "MULTIPLE",
+                "supplementary_value": "MULTIPLE",
+                "comparison_result": "NOT_COMPARABLE",
+                "reconciliation_decision": "UNRESOLVED_MULTI_RECORD",
+                "selected_value": "",
+                "reason": f"Identity requires explicit multi-record handling ({cardinality}).",
+                "rule_applied": "RULE-S5-COMPLEX-MULTI"
+            })
+            continue
+
         if match_status == "ORIGINAL_ONLY":
             # Pass through the original record exactly as-is
             case_data = aligned_grouped.get_group(case_id)
             orig_row = case_data[case_data["source_system"] == "ORIGINAL"].iloc[0].to_dict()
+            orig_idx = orig_row.get("source_row_index", "")
             
             reconciled_rec = {col: orig_row.get(col, "") for col in canonical_cols}
             reconciled_rec["reconciliation_status"] = "ORIGINAL_ONLY"
@@ -52,6 +69,8 @@ def reconcile_dataset(
             audit_logs.append({
                 "case_id": case_id,
                 "field": "ALL",
+                "original_source_row": orig_idx,
+                "supplementary_source_row": "",
                 "original_value": "PRESENT",
                 "supplementary_value": "UNAVAILABLE",
                 "comparison_result": "NOT_COMPARABLE",
@@ -82,6 +101,26 @@ def reconcile_dataset(
             reconciled_rec["source_system"] = "RECONCILED"
             
             has_conflict = False
+            supp_idx = pair_group["supplementary_source_row"].iloc[0]
+            
+            # Explicitly log extract_date provenance
+            orig_ext = str(orig_row.get("extract_date", ""))
+            case_supp_rows = case_data[case_data["source_system"] == "SUPPLEMENTARY"]
+            supp_ext = str(case_supp_rows.iloc[0].get("extract_date", "")) if not case_supp_rows.empty else ""
+            
+            audit_logs.append({
+                "case_id": case_id,
+                "field": "extract_date",
+                "original_source_row": orig_idx,
+                "supplementary_source_row": supp_idx,
+                "original_value": orig_ext,
+                "supplementary_value": supp_ext,
+                "comparison_result": "PROVENANCE_ONLY",
+                "reconciliation_decision": "RETAIN_PROVENANCE",
+                "selected_value": orig_ext,
+                "reason": "Retain source provenance for extraction date without treating as conflict.",
+                "rule_applied": "RULE-S5-EXTRACT-DATE"
+            })
         
             for c_row in pair_group.itertuples():
                 field = c_row.field_name
@@ -152,6 +191,8 @@ def reconcile_dataset(
                 audit_logs.append({
                     "case_id": case_id,
                     "field": field,
+                    "original_source_row": orig_idx,
+                    "supplementary_source_row": supp_idx,
                     "original_value": o_val,
                     "supplementary_value": s_val,
                     "comparison_result": res,

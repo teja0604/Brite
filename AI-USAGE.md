@@ -570,12 +570,11 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 - Wrote unit tests verifying the single-record logic, conflict fallback, and multi-record exclusion behavior in `test_reconcile.py`.
 - Documented these architectural rules in `DECISIONS.md` (DEC-022) as PROPOSED rules.
 
-**My Contribution & Verification**
-- I reviewed the implementation plan explicitly detailing the 4 core reconciliation ambiguities.
+**My Contribution & Verification (Human Approved)**
+- I reviewed the implementation plan explicitly detailing the 5 reconciliation ambiguities.
+- I explicitly reviewed and approved the **field-level precedence** rules: Supplementary wins ONLY for `status` and `closure_date`, while Original wins for all other fields. I also explicitly approved the `extract_date` provenance retention.
+- I explicitly reviewed and approved the **missing-value handling** strategy (imputation from populated side with provenance).
+- I explicitly reviewed and approved the **representation-equivalent handling** strategy (retaining Original string representations).
+- I explicitly reviewed and approved the **unavailable-field handling** strategy (retaining the side that schema-defines the field).
+- I explicitly reviewed and approved the **MANY_TO_ONE preservation strategy** (producing one reconciled output row per Original physical row without implicit deduplication, and leaving ONE_TO_MANY/MANY_TO_MANY explicitly unresolved).
 - I verified raw hashes were untouched.
-
-**Pending Human Decisions (Currently implemented as AI-proposed rules)**
-- **AI-proposed policy pending human approval**: For genuine `CONFLICT`s, Supplementary wins for `status` and `closure_date`, Original wins for everything else.
-- **AI-proposed policy pending human approval**: Imputing a populated value into a missing value (`MISSING_ONE_SIDE`).
-- **AI-proposed policy pending human approval**: Retaining Original formatting for `REPRESENTATION_EQUIVALENT`.
-- **AI-proposed policy pending human approval**: Producing exactly one reconciled record per Original row for `MANY_TO_ONE` identities, grouped by original_source_row (46 cases).
