@@ -498,3 +498,27 @@ Adopt a standalone original source adapter that maps 1:1 into the Canonical Sche
 **Decision**
 Adopt the isolated supplementary adapter function, establishing a purely structural translation layer for the supplementary data that safely preserves extraction dates, empty string omissions, and safely derived conceptual status without prematurely reconciling cross-source conflicts.
 
+
+### Phase S3 — Identity Matching
+
+**AI Contribution**
+- Implemented \match_identities\ in \src/dirty_data/identity.py\ to establish cross-source equivalence without prematurely resolving conflicts.
+- Utilized a flattened alignment dataframe approach (\pd.concat\ followed by deterministic sorting) to preserve all canonical properties and provenance metadata without risking the silent-drop dangers of \pd.merge\ or \drop_duplicates\.
+- Added test coverage in \	ests/test_identity.py\ that validates dynamic overlap calculations (confirming the exact 14,916 orig / 4,180 supp / 3,400 overlap numbers) and strictly proves row conservation (19,280 total records).
+
+**My Contribution & Verification**
+- Reviewed the identity-matching alignment logic to verify no data cleaning or conflict resolution was hidden within the alignment step.
+- Approved the concatenated output structure, ensuring it perfectly positions S4/S5 phases to use grouped case_id iterations.
+- Validated regression tests to ensure previous Phase 0-7 architecture was completely unaffected.
+- Verified all 84/84 tests passed and the exact overlap metrics matched the baseline expectations.
+
+**Verification Evidence**
+- Test Count: 84 items collected.
+- Test Results: 84 passed, 0 failed.
+- Row Conservation: Output contains exactly 19,280 rows (15,100 orig + 4,180 supp).
+- Commit: db758b4
+- Push completed successfully.
+
+**Decision**
+Adopt the concatenated identity ledger approach. Identity mapping is purely an association phase establishing multi-source groupings for future downstream comparison, fully maintaining the required non-destructive boundary.
+

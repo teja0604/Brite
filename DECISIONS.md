@@ -288,3 +288,18 @@ Separation of concerns is maintained. The supplementary adapter performs determi
 ### Consequences
 Both sources can now be safely translated into a shared vocabulary (Canonical Schema). Identity matching, field comparison, and reconciliation (S3+) can now compare equivalent structures without dealing with structural noise. Deduplication and conflict resolution remain intentionally deferred.
 
+
+## DEC-019 — Identity Matching Logic (S3)
+### Context
+The canonical Original and Supplementary datasets must be associated based on their identity without resolving conflicts, overriding values, or artificially deduplicating data.
+### Options considered
+1. Use \pd.merge(how='outer')\ to join on \case_id\, resulting in side-by-side columns (e.g., \status_x\, \status_y\).
+2. Use a hierarchical data structure (e.g., dictionary) to map \case_id\ to a list of source records.
+3. Use a flat concatenated DataFrame, sorted deterministically by \case_id\, \source_system\, and \source_row_index\.
+### Decision
+Adopt Option 3. Implemented \match_identities\ in \identity.py\. It calculates the overlap metrics dynamically, then strictly concatenates both canonical DataFrames and sorts them. This maintains the 1:1 structural schema (preventing column bloat from merges) and groups conflicting records neatly as adjacent rows.
+### Reasoning
+Concatenation avoids silent merges or drops. It enforces that identity matching is purely a grouping exercise, not a resolution exercise. Provenance (\source_system\, \source_row_index\) acts as the differentiator within the grouped identity ledger.
+### Consequences
+The resulting \ligned_df\ has exactly \len(orig) + len(supp)\ rows (19,280). No data is lost, and S4/S5 field comparisons can process conflicts sequentially by iterating over \groupby('case_id')\.
+
