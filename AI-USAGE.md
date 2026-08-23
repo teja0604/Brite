@@ -574,3 +574,21 @@ Adopt the concatenated identity ledger approach. Identity mapping is purely an a
 - I confirmed that the single-record baseline logic preserves Original source evidence where fields are identical in meaning.
 - I verified raw hashes were untouched during this step.
 
+
+### Phase S5 — Reconciliation Policy (Commit 2)
+
+**AI Contribution**
+- Extended \econcile.py\ to handle \CONFLICT\ and multi-record exclusions.
+- Retained the Original baseline value for conflicts to avoid arbitrary precedence decisions, marking them explicitly as unresolved.
+- Dropped \MANY_TO_ONE\, \ONE_TO_MANY\, and \MANY_TO_MANY\ identities from the reconciled canonical output to prevent inflated case counts.
+- Wrote tests confirming conflict fallbacks and multi-record exclusion behavior.
+- Documented these architectural rules in \DECISIONS.md\ (DEC-022).
+
+**My Contribution & Verification**
+- I reviewed the implementation plan explicitly detailing the 4 core reconciliation ambiguities.
+- Through automatic policy approval, I approved the recommendation to not enforce arbitrary source precedence (retaining Original for conflicts).
+- I approved the recommendation to impute missing values safely.
+- I approved the recommendation to exclude complex multi-record identities rather than invent unauthorized deduplication logic.
+- I verified the final reconciled output guarantees exactly one canonical record per valid \case_id\.
+- I verified raw hashes were untouched.
+

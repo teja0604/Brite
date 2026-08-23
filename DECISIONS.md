@@ -338,3 +338,21 @@ Phase S4 requires comparing fields from the Original and Supplementary canonical
 ### Consequences
 S4 outputs a deterministic comparison matrix preserving all physical evidence and explicitly mapping structural disparities across both datasets without making reconciliation decisions.
 
+
+## DEC-022: Phase S5 Reconciliation Policy
+
+### Date
+2026-08-23
+
+### Context
+Phase S5 requires building a deterministic reconciliation policy that converts the evidence produced by S4 into explicit field-level reconciliation decisions. Because there are no existing business rules authorizing source precedence or deduplication, these ambiguities required explicit human review.
+
+### Decision
+1. **Field-Level Conflict Precedence**: When a genuine CONFLICT occurs, no source automatically wins. The Original baseline value is retained to prevent silent data loss, and the record is flagged with UNRESOLVED_CONFLICT in the audit log.
+2. **Missing Value Imputation**: For MISSING_ONE_SIDE, we impute the value from the present side (e.g. Supplementary fills Original's blank) to improve completeness without overriding existing evidence.
+3. **Representation Equivalents**: When values are equivalent (e.g. date formats), we retain the Original string formatting to minimize arbitrary churn.
+4. **Unavailable Fields**: For UNAVAILABLE_ONE_SIDE, we retain the available evidence.
+5. **Multi-Record Identities**: Non-ONE_TO_ONE identities (MANY_TO_ONE, ONE_TO_MANY, MANY_TO_MANY) are dropped from the reconciled canonical output as EXCLUDE_FROM_ANALYSIS to avoid inventing unsupported deduplication rules.
+
+### Consequences
+The reconciled dataset provides exactly one row per canonical case_id for S6, preserving the conservative integrity of the Phase 0-7 baseline. Genuine conflicts and multi-record complexities are surfaced in the audit log without assuming source precedence or silently deleting records.

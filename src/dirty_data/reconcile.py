@@ -39,9 +39,19 @@ def reconcile_dataset(
         match_status = idx_row.match_status
         
         # ---------------------------------------------------------
-        # TEMPORARY COMMIT 1 LOGIC: Skip complex cases for Commit 2
-        # ---------------------------------------------------------
         if cardinality not in ["ONE_TO_ONE", "ORIGINAL_ONLY"]:
+            # Drop multi-record identities as UNRESOLVED
+            audit_logs.append({
+                "case_id": case_id,
+                "field": "ALL",
+                "original_value": "MULTIPLE",
+                "supplementary_value": "MULTIPLE",
+                "comparison_result": "NOT_COMPARABLE",
+                "reconciliation_decision": "EXCLUDE_FROM_ANALYSIS",
+                "selected_value": "",
+                "reason": f"Multi-record identity ({cardinality}) excluded from reconciliation.",
+                "rule_applied": "RULE-S5-MULTI-RECORD"
+            })
             continue
             
         if match_status == "ORIGINAL_ONLY":
@@ -134,12 +144,12 @@ def reconcile_dataset(
                     reason = "Supplementary is missing; imputing from present Original value"
                     
             elif res in ["CONFLICT", "INVALID_COMPARISON"]:
-                # TEMPORARY COMMIT 1 LOGIC: Just mark conflict flag. Will implement fully in Commit 2.
+                # Option 4 (Unresolved): Retain baseline Original evidence but mark as UNRESOLVED_CONFLICT
                 has_conflict = True
-                selected_val = o_val # fallback for tests to not crash
-                decision = "UNRESOLVED_CONFLICT"
+                selected_val = o_val
+                decision = "RETAIN_BASELINE_AS_UNRESOLVED"
                 rule = "RULE-S5-CONFLICT"
-                reason = "Genuine conflict pending implementation in Commit 2"
+                reason = "Genuine conflict or invalid comparison; retaining Original evidence and marking as unresolved."
             
             reconciled_rec[field] = selected_val
             
